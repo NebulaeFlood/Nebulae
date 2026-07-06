@@ -10,7 +10,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $group = (Get-Content -LiteralPath $ProjectsJson -Raw | ConvertFrom-Json).groups[0]
-$testProject = @($group.testProjects | Where-Object { $_ -like '*/Tests.Rumtime.Emit.Inline.csproj' })
+$testProject = @($group.testProjects | Where-Object { $_ -like '*/Tests.Runtime.Emit.Inline.csproj' })
 if ($testProject.Count -ne 1) {
     throw "Expected one Inline IL package test project, found $($testProject.Count)."
 }

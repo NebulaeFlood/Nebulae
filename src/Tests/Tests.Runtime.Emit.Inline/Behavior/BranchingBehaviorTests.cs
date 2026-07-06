@@ -45,8 +45,10 @@ public sealed class BranchingBehaviorTests
 
     private static int SumTo(int value)
     {
-        int sum = 0;
-        int current = 1;
+        IL.Emit.Ldc_I4(0);
+        IL.Emit.Stloc(out int sum);
+        IL.Emit.Ldc_I4(1);
+        IL.Emit.Stloc(out int current);
 
         IL.Label("loop");
         IL.Emit.Ldloc(current);

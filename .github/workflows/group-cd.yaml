@@ -85,7 +85,6 @@ jobs:
         run: |
           $projectsFile = Join-Path $env:RUNNER_TEMP 'cicd-projects.json'
           ./eng/workflows/Get-Projects.ps1 -CICD $env:CICD_GROUP -Json -OutputPath $projectsFile
-          Get-Content -LiteralPath $projectsFile
 
       - name: Resolve version
         shell: pwsh
@@ -165,7 +164,7 @@ jobs:
           $packages | ForEach-Object { $_.Name }
 
       - name: Upload NuGet packages
-        uses: actions/download-artifact@v8
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.cicd }}-${{ inputs.package_version }}
           path: |
