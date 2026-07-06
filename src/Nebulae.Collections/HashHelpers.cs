@@ -161,7 +161,7 @@ namespace Nebulae.Collections
             {
                 for (int i = min | 1; i < MaxSize; i += 2)
                 {
-                    if (IsPrime(i) && Modulo((uint)(i - 1u), HashPrime, HashPrimeMultiplier) != 0)
+                    if (IsPrime(i) && Modulo((uint)(i - 1U), HashPrime, HashPrimeMultiplier) != 0)
                     {
                         return i;
                     }

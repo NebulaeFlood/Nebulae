@@ -516,7 +516,7 @@ namespace Nebulae.Diagnostics
 
         #region Private Format Helpers
 
-        private static StringBuilder FormatDeclaringType(this StringBuilder builder, Type? declaringType, MemberInfo source, bool scoped = true)
+        private static StringBuilder FormatDeclaringType(this StringBuilder builder, Type? declaringType, bool scoped = true)
         {
             if (declaringType is null)
             {
@@ -536,23 +536,23 @@ namespace Nebulae.Diagnostics
                     return builder
                         .FormatType(typeof(void))
                         .Append(' ')
-                        .FormatDeclaringType(member.DeclaringType, member)
+                        .FormatDeclaringType(member.DeclaringType)
                         .Append("ctor(")
                         .FormatParameters(((ConstructorInfo)member).GetParameters())
                         .Append(')');
                 case MemberTypes.Event:
                 case MemberTypes.Field:
-                    return builder.FormatDeclaringType(member.DeclaringType, member).Append(member.Name);
+                    return builder.FormatDeclaringType(member.DeclaringType).Append(member.Name);
                 case MemberTypes.Property:
                     var parameters = ((PropertyInfo)member).GetIndexParameters();
 
                     if (parameters.Length < 1)
                     {
-                        return builder.FormatDeclaringType(member.DeclaringType, member).Append(member.Name);
+                        return builder.FormatDeclaringType(member.DeclaringType).Append(member.Name);
                     }
                     else
                     {
-                        return builder.FormatDeclaringType(member.DeclaringType, member).Append("this[").FormatParameters(parameters).Append(']');
+                        return builder.FormatDeclaringType(member.DeclaringType).Append("this[").FormatParameters(parameters).Append(']');
                     }
                 case MemberTypes.Method:
                     return builder.FormatMethod((MethodInfo)member);
@@ -595,7 +595,7 @@ namespace Nebulae.Diagnostics
         {
             builder
                 .FormatType(method.ReturnType).Append(' ')
-                .FormatDeclaringType(method.DeclaringType, method)
+                .FormatDeclaringType(method.DeclaringType)
                 .Append(method.Name);
 
             if (method.IsGenericMethod)

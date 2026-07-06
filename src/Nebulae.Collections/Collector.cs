@@ -4,8 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Nebulae.Collections
 {
@@ -13,8 +11,8 @@ namespace Nebulae.Collections
     /// 收集器
     /// </summary>
     /// <typeparam name="T">收集的元素类型</typeparam>
-    [DebuggerTypeProxy(typeof(CollectorDebugView<>))]
-    public struct Collector<T> : IEnumerable<T>
+    [DebuggerTypeProxy(typeof(CollectionDebugView<>))]
+    public struct Collector<T> : IEnumerable<T>, ICollectionDebugView<T>
     {
         /// <summary>
         /// 获取元素数量
@@ -258,14 +256,5 @@ namespace Nebulae.Collections
 
             #endregion
         }
-    }
-
-
-    internal sealed class CollectorDebugView<T>(Collector<T> collector)
-    {
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-#pragma warning disable IDE0305
-        public T[] Items => collector.ToArray();
-#pragma warning restore IDE0305
     }
 }
