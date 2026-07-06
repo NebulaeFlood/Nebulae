@@ -1,0 +1,215 @@
+name: Group CD
+
+on:
+  workflow_call:
+    inputs:
+      cicd:
+        description: CI/CD project group
+        required: true
+        type: string
+      package_version:
+        description: NuGet package version
+        required: true
+        type: string
+      source_ref:
+        description: Git ref containing the release source
+        required: true
+        type: string
+    secrets:
+      NUGET_USER:
+        description: NuGet.org profile name used by Trusted Publishing
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  BUILD_CONFIGURATION: Release
+  PACKAGE_OUTPUT_DIR: ./artifacts/packages
+  NUGET_PACKAGES: ${{ github.workspace }}/artifacts/nuget-packages
+
+jobs:
+  build-test-pack:
+    name: Build, test, and pack ${{ inputs.cicd }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Validate release inputs
+        shell: pwsh
+        env:
+          CICD_GROUP: ${{ inputs.cicd }}
+          PACKAGE_VERSION: ${{ inputs.package_version }}
+          SOURCE_REF: ${{ inputs.source_ref }}
+        run: |
+          if ($env:CICD_GROUP -cnotmatch '^(default|[a-z0-9-]+)$') {
+            throw "Invalid CICD group '$env:CICD_GROUP'."
+          }
+
+          $numericIdentifier = '(?:0|[1-9][0-9]*)'
+          $prereleaseIdentifier = '(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)'
+          $versionPattern = "$numericIdentifier\.$numericIdentifier\.$numericIdentifier(?:-$prereleaseIdentifier(?:\.$prereleaseIdentifier)*)?"
+          if ($env:PACKAGE_VERSION -cnotmatch "^$versionPattern$") {
+            throw "Invalid package version '$env:PACKAGE_VERSION'."
+          }
+
+          $tag = if ($env:CICD_GROUP -eq 'default') {
+            "v$env:PACKAGE_VERSION"
+          }
+          else {
+            "$env:CICD_GROUP-v$env:PACKAGE_VERSION"
+          }
+          $expectedRef = "refs/tags/$tag"
+          if ($env:SOURCE_REF -cne $expectedRef) {
+            throw "Release source '$env:SOURCE_REF' does not match '$expectedRef'."
+          }
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_ref }}
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Discover projects
+        shell: pwsh
+        env:
+          CICD_GROUP: ${{ inputs.cicd }}
+        run: |
+          $projectsFile = Join-Path $env:RUNNER_TEMP 'cicd-projects.json'
+          ./eng/workflows/Get-Projects.ps1 -CICD $env:CICD_GROUP -Json -OutputPath $projectsFile
+          Get-Content -LiteralPath $projectsFile
+
+      - name: Resolve version
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ inputs.package_version }}
+        run: |
+          $versionWithoutMetadata = ($env:PACKAGE_VERSION -split '\+', 2)[0]
+          $versionParts = $versionWithoutMetadata -split '-', 2
+          "VERSION_PREFIX=$($versionParts[0])" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $suffix = if ($versionParts.Count -eq 2) { $versionParts[1] } else { '' }
+          "VERSION_SUFFIX=$suffix" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore projects
+        shell: pwsh
+        run: |
+          $group = (Get-Content (Join-Path $env:RUNNER_TEMP 'cicd-projects.json') -Raw | ConvertFrom-Json).groups[0]
+          foreach ($project in $group.projects) {
+            dotnet restore $project
+            if ($LASTEXITCODE -ne 0) { throw "Restore failed for '$project'." }
+          }
+
+      - name: Build projects
+        shell: pwsh
+        run: |
+          $group = (Get-Content (Join-Path $env:RUNNER_TEMP 'cicd-projects.json') -Raw | ConvertFrom-Json).groups[0]
+          foreach ($project in $group.projects) {
+            dotnet build $project --configuration $env:BUILD_CONFIGURATION --no-restore -p:VersionPrefix=$env:VERSION_PREFIX -p:VersionSuffix=$env:VERSION_SUFFIX -p:GeneratePackageOnBuild=false
+            if ($LASTEXITCODE -ne 0) { throw "Build failed for '$project'." }
+          }
+
+      - name: Test projects
+        shell: pwsh
+        run: |
+          $group = (Get-Content (Join-Path $env:RUNNER_TEMP 'cicd-projects.json') -Raw | ConvertFrom-Json).groups[0]
+          foreach ($project in $group.testProjects) {
+            dotnet test $project --configuration $env:BUILD_CONFIGURATION --no-build --no-restore --verbosity normal
+            if ($LASTEXITCODE -ne 0) { throw "Tests failed for '$project'." }
+          }
+
+      - name: Pack projects
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ inputs.package_version }}
+        run: |
+          $group = (Get-Content (Join-Path $env:RUNNER_TEMP 'cicd-projects.json') -Raw | ConvertFrom-Json).groups[0]
+          New-Item -ItemType Directory -Path $env:PACKAGE_OUTPUT_DIR -Force | Out-Null
+          foreach ($project in $group.packableProjects) {
+            dotnet pack $project --configuration $env:BUILD_CONFIGURATION --no-build --output $env:PACKAGE_OUTPUT_DIR -p:PackageVersion=$env:PACKAGE_VERSION -p:VersionPrefix=$env:VERSION_PREFIX -p:VersionSuffix=$env:VERSION_SUFFIX -p:GeneratePackageOnBuild=false
+            if ($LASTEXITCODE -ne 0) { throw "Pack failed for '$project'." }
+          }
+
+      - name: Run group CD hook
+        shell: pwsh
+        env:
+          CICD_GROUP: ${{ inputs.cicd }}
+          PACKAGE_VERSION: ${{ inputs.package_version }}
+        run: |
+          $hook = Join-Path 'eng/workflows' "$env:CICD_GROUP-cd.ps1"
+          if (Test-Path -LiteralPath $hook) {
+            & $hook `
+              -Configuration $env:BUILD_CONFIGURATION `
+              -ProjectsJson (Join-Path $env:RUNNER_TEMP 'cicd-projects.json') `
+              -PackageOutputDir $env:PACKAGE_OUTPUT_DIR `
+              -PackageVersion $env:PACKAGE_VERSION
+          }
+
+      - name: Validate package set
+        shell: pwsh
+        run: |
+          $group = (Get-Content (Join-Path $env:RUNNER_TEMP 'cicd-projects.json') -Raw | ConvertFrom-Json).groups[0]
+          $packages = @(Get-ChildItem -LiteralPath $env:PACKAGE_OUTPUT_DIR -Filter '*.nupkg' -File |
+            Where-Object { $_.Name -notlike '*.snupkg' })
+          $expectedCount = @($group.packableProjects).Count
+          if ($packages.Count -ne $expectedCount) {
+            throw "Expected $expectedCount NuGet packages, found $($packages.Count)."
+          }
+          $packages | ForEach-Object { $_.Name }
+
+      - name: Upload NuGet packages
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.cicd }}-${{ inputs.package_version }}
+          path: |
+            ${{ env.PACKAGE_OUTPUT_DIR }}/*.nupkg
+            ${{ env.PACKAGE_OUTPUT_DIR }}/*.snupkg
+          if-no-files-found: error
+
+  publish:
+    name: Publish ${{ inputs.cicd }} to NuGet.org
+    needs: build-test-pack
+    runs-on: ubuntu-latest
+    environment: nuget-publish
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download verified package artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.cicd }}-${{ inputs.package_version }}
+          path: ${{ env.PACKAGE_OUTPUT_DIR }}
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Validate NuGet packages
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem -LiteralPath $env:PACKAGE_OUTPUT_DIR -Filter '*.nupkg' -File |
+            Where-Object { $_.Name -notlike '*.snupkg' })
+          if ($packages.Count -eq 0) {
+            throw 'The build artifact contains no NuGet packages to publish.'
+          }
+          $packages | ForEach-Object { $_.Name }
+
+      - name: Login to NuGet.org
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Publish to NuGet.org
+        shell: pwsh
+        run: dotnet nuget push "$env:PACKAGE_OUTPUT_DIR/*.nupkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate

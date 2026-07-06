@@ -1,0 +1,69 @@
+name: CI Orchestrator
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze-differences:
+    name: Analyze CI/CD groups
+    runs-on: ubuntu-latest
+    outputs:
+      groups: ${{ steps.analyze.outputs.groups }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Analyze
+        id: analyze
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          $outputFile = Join-Path $env:RUNNER_TEMP 'different-groups.json'
+
+          if ($env:EVENT_NAME -eq 'workflow_dispatch') {
+            ./eng/workflows/Get-DifferentGroups.ps1 -All -Json -OutputPath $outputFile
+          }
+          elseif ($env:EVENT_NAME -eq 'pull_request') {
+            ./eng/workflows/Get-DifferentGroups.ps1 -BaseRef $env:BASE_SHA -HeadRef $env:HEAD_SHA -Json -OutputPath $outputFile
+          }
+          elseif ([string]::IsNullOrWhiteSpace($env:BEFORE_SHA) -or $env:BEFORE_SHA -match '^0+$') {
+            ./eng/workflows/Get-DifferentGroups.ps1 -All -Json -OutputPath $outputFile
+          }
+          else {
+            ./eng/workflows/Get-DifferentGroups.ps1 -BaseRef $env:BEFORE_SHA -HeadRef $env:GITHUB_SHA -Json -OutputPath $outputFile
+          }
+
+          $groups = (Get-Content -LiteralPath $outputFile -Raw).Trim()
+          "groups=$groups" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+  run-ci:
+    name: CI (${{ matrix.cicd }})
+    needs: analyze-differences
+    if: needs.analyze-differences.outputs.groups != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        cicd: ${{ fromJSON(needs.analyze-differences.outputs.groups) }}
+    uses: ./.github/workflows/group-ci.yaml
+    with:
+      cicd: ${{ matrix.cicd }}

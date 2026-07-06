@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<CICD>inline-il-package</CICD>
+		<GenerateDocumentationFile>false</GenerateDocumentationFile>
+		<IsPackable>false</IsPackable>
+		<IsRoslynComponent>true</IsRoslynComponent>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<NeutralLanguage>en</NeutralLanguage>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<PackageReference Remove="Microsoft.Bcl.HashCode" />
+		<PackageReference Remove="Microsoft.Bcl.Memory" />
+		<PackageReference Remove="Microsoft.Bcl.Numerics" />
+		<PackageReference Remove="System.Memory" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <Compile Include="..\..\Nebulae.Runtime.Emit.Inline\ReferenceType.cs" Link="ReferenceType.cs" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <Compile Update="Properties\Resources.Designer.cs">
+	    <DesignTime>true</DesignTime>
+	    <AutoGen>true</AutoGen>
+	    <DependentUpon>Resources.resx</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <EmbeddedResource Update="Properties\Resources.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	</ItemGroup>
+
+	<Import Project="..\..\Nebulae.Runtime.Emit.Inline.Analyzers\Nebulae.Runtime.Emit.Inline.Analyzers.projitems" Label="Shared" />
+
+</Project>

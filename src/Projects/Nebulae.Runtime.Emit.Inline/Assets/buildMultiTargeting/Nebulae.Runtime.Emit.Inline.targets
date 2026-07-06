@@ -1,0 +1,24 @@
+<Project>
+
+	<PropertyGroup>
+		<_TaskTargetFramework>netstandard2.0</_TaskTargetFramework>
+		<_TaskTargetFramework Condition=" '$(MSBuildRuntimeType)' == 'Core' and $([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '18.0')) ">net10.0</_TaskTargetFramework>
+		<_TaskDir>$(MSBuildThisFileDirectory)..\tasks\$(_TaskTargetFramework)\</_TaskDir>
+	</PropertyGroup>
+
+	<UsingTask TaskName="Nebulae.Runtime.Emit.Inline.MSBuild.InlineILTask"
+			   AssemblyFile="$(_TaskDir)Nebulae.Runtime.Emit.Inline.MSBuild.dll" />
+
+	<Target Name="InlineIL"
+			AfterTargets="CoreCompile" >
+		
+		<Error Condition=" '%(PackageReference.Identity)' == 'Nebulae.Runtime.Emit.Inline' and '%(PackageReference.PrivateAssets)' != 'all' "
+			   Text="The package reference for Nebulae.Runtime.Emit.Inline must contain PrivateAssets='all'." />
+		<InlineILTask AssemblyPath="$(IntermediateOutputPath)$(TargetFileName)"
+					  DebugType="$(DebugType)"
+					  References="@(ReferencePath->'%(RootDir)%(Directory)')"
+					  Condition=" Exists('$(IntermediateOutputPath)$(TargetFileName)') " />
+
+	</Target>
+
+</Project>

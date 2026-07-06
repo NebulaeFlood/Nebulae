@@ -1,0 +1,90 @@
+name: CD Orchestrator
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '*-v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag (v1.0.0 or <cicd>-v1.0.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-group:
+    name: Resolve group
+    runs-on: ubuntu-latest
+    outputs:
+      cicd: ${{ steps.resolve.outputs.cicd }}
+      package_version: ${{ steps.resolve.outputs.package_version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.release_tag) || github.ref }}
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Resolve release tag
+        id: resolve
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          DISPATCH_TAG: ${{ inputs.release_tag }}
+        run: |
+          $tag = if ($env:EVENT_NAME -eq 'workflow_dispatch') { $env:DISPATCH_TAG } else { $env:REF_NAME }
+          $numericIdentifier = '(?:0|[1-9][0-9]*)'
+          $prereleaseIdentifier = '(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)'
+          $versionPattern = "(?<version>$numericIdentifier\.$numericIdentifier\.$numericIdentifier(?:-$prereleaseIdentifier(?:\.$prereleaseIdentifier)*)?)"
+
+          if ($tag -match "^v$versionPattern$") {
+            $cicd = 'default'
+            $packageVersion = $Matches.version
+          }
+          elseif ($tag -match "^(?<cicd>[a-z0-9-]+)-v$versionPattern$") {
+            $cicd = $Matches.cicd
+            $packageVersion = $Matches.version
+            if ($cicd -eq 'default') {
+              throw "The default CICD group must use an unprefixed tag such as 'v1.0.0'."
+            }
+          }
+          else {
+            throw "Invalid release tag '$tag'. Use v1.0.0 or <cicd>-v1.0.0."
+          }
+
+          $groups = (./eng/workflows/Get-Projects.ps1 -Json | ConvertFrom-Json).groups.cicd
+
+          if ($cicd -notin $groups) {
+            throw "Release tag '$tag' selects unknown CICD group '$cicd'. Available groups: $($groups -join ', ')"
+          }
+
+          "cicd=$cicd" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "package_version=$packageVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+  run-cd:
+    name: CD (${{ needs.resolve-group.outputs.cicd }})
+    needs: resolve-group
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: cd-${{ needs.resolve-group.outputs.cicd }}-${{ needs.resolve-group.outputs.package_version }}
+      cancel-in-progress: false
+    uses: ./.github/workflows/group-cd.yaml
+    with:
+      cicd: ${{ needs.resolve-group.outputs.cicd }}
+      package_version: ${{ needs.resolve-group.outputs.package_version }}
+      source_ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.release_tag) || github.ref }}
+    secrets:
+      NUGET_USER: ${{ secrets.NUGET_USER }}

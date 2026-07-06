@@ -1,0 +1,5 @@
+<Project>
+
+	<Import Project="..\buildMultiTargeting\Nebulae.Runtime.Emit.Inline.targets" />
+
+</Project>

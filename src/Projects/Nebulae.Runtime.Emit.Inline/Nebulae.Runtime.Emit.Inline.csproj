@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+		<CICD>inline-il-package</CICD>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Description>A simple library to inline IL code.</Description>
+
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+		<DevelopmentDependency>true</DevelopmentDependency>
+		<NoWarn>$(NoWarn);NU5100</NoWarn>
+
+		<TargetsForTfmSpecificContentInPackage>
+			$(TargetsForTfmSpecificContentInPackage);_PackMSBuildTask
+		</TargetsForTfmSpecificContentInPackage>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Remove="Microsoft.Bcl.HashCode" />
+		<PackageReference Remove="Microsoft.Bcl.Memory" />
+		<PackageReference Remove="Microsoft.Bcl.Numerics" />
+		<PackageReference Remove="System.Memory" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Nebulae.Runtime.Emit.Inline.Analyzers\Nebulae.Runtime.Emit.Inline.Analyzers.csproj" />
+		<ProjectReference Include="..\Nebulae.Runtime.Emit.Inline.MSBuild\Nebulae.Runtime.Emit.Inline.MSBuild.csproj" />
+		<ProjectReference Update="@(ProjectReference)" ReferenceOutputAssembly="false" PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="Assets\tasks\" />
+
+		<None Include="Assets\build\*" Pack="true" PackagePath="build" />
+		<None Include="Assets\buildMultiTargeting\*" Pack="true" PackagePath="buildMultiTargeting" />
+		<None Include="..\Nebulae.Runtime.Emit.Inline.Analyzers\bin\$(Configuration)\netstandard2.0\Nebulae.Runtime.Emit.Inline.Analyzers.dll" Pack="true" PackagePath="analyzers\dotnet\cs" Visible="false" />
+		<None Include="..\Nebulae.Runtime.Emit.Inline.Analyzers\bin\$(Configuration)\netstandard2.0\zh-CN\Nebulae.Runtime.Emit.Inline.Analyzers.resources.dll" Pack="true" PackagePath="analyzers\dotnet\cs\zh-CN" Visible="false" />
+	</ItemGroup>
+
+	<Import Project="..\..\Nebulae.Runtime.Emit.Inline\Nebulae.Runtime.Emit.Inline.projitems" Label="Shared" />
+
+	<Target Name="_PackMSBuildTask">
+		<ItemGroup>
+			<TfmSpecificPackageFile Include="..\Nebulae.Runtime.Emit.Inline.MSBuild\bin\$(Configuration)\$(TargetFramework)\*.dll" PackagePath="tasks\$(TargetFramework)" />
+		</ItemGroup>
+	</Target>
+
+</Project>

@@ -1,0 +1,63 @@
+<Project>
+
+	<PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+		<VersionPrefix Condition=" '$(VersionPrefix)' == '' ">1.0.0</VersionPrefix>
+		<VersionSuffix Condition=" '$(VersionSuffix)' == '' "></VersionSuffix>
+
+		<Version Condition=" '$(Version)' == '' and '$(VersionSuffix)' == '' ">$(VersionPrefix)</Version>
+		<Version Condition=" '$(Version)' == '' and '$(VersionSuffix)' != '' ">$(VersionPrefix)-$(VersionSuffix)</Version>
+
+		<AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
+		<FileVersion>$(VersionPrefix).$(GITHUB_RUN_NUMBER)</FileVersion>
+
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	</PropertyGroup>
+	
+	<PropertyGroup Condition="!$(MSBuildProjectName.StartsWith('Tests'))">
+		<Authors>NebulaeFlood</Authors>
+		<Copyright>Copyright (c) 2026 NebulaeFlood</Copyright>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+
+		<PackageOutputPath>$(SolutionDir)build</PackageOutputPath>
+		<PackageReadmeFile Condition=" Exists('$(MSBuildProjectDirectory)\README.md') ">README.md</PackageReadmeFile>
+
+		<RepositoryUrl>https://github.com/NebulaeFlood/Nebulae</RepositoryUrl>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="$(MSBuildProjectName.StartsWith('Tests'))">
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' and '$(GITHUB_ACTIONS)' == 'true' ">
+		<PackageReference Include="Microsoft.SourceLink.GitHub"
+						  Version="8.0.0"
+						  PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup Condition="!$(MSBuildProjectName.StartsWith('Tests'))">
+		<None Include="..\..\..\LICENSE.txt" Pack="true" PackagePath="\" />
+		<None Include="README.md" Condition=" Exists('$(MSBuildProjectDirectory)\README.md') " Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<LangVersion>14.0</LangVersion>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<ItemGroup Condition=" $(TargetFramework) == 'netstandard2.0' ">
+		<PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Bcl.Memory" Version="10.0.9" />
+		<PackageReference Include="Microsoft.Bcl.Numerics" Version="10.0.9" />
+		<PackageReference Include="System.Memory" Version="4.6.3" />
+	</ItemGroup>
+
+</Project>

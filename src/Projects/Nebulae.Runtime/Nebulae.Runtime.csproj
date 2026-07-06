@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+	</PropertyGroup>
+
+	<Import Project="..\..\Nebulae.Runtime.Emit\Nebulae.Runtime.Emit.projitems" Label="Shared" />
+	<Import Project="..\..\Nebulae.Runtime.Forge\Nebulae.Runtime.Forge.projitems" Label="Shared" />
+
+</Project>

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Default": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "..\\..\\Tests\\Tests.Rumtime.Emit.Inline\\Tests.Rumtime.Emit.Inline.csproj"
+    }
+  }
+}

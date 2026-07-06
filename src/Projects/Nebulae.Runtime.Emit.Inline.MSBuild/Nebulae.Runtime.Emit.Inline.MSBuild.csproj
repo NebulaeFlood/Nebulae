@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+		<CICD>inline-il-package</CICD>
+		<GenerateDocumentationFile>false</GenerateDocumentationFile>
+		<IsPackable>false</IsPackable>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Include="..\..\Nebulae.Runtime.Emit.Inline\PlaceholderCode.cs" Link="PlaceholderCode.cs" />
+	  <Compile Include="..\..\Nebulae.Runtime.Emit.Inline\PlaceholderOperand.cs" Link="PlaceholderOperand.cs" />
+	  <Compile Include="..\..\Nebulae.Runtime.Emit.Inline\ReferenceType.cs" Link="ReferenceType.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Build.Framework" Version="18.7.1" ExcludeAssets="runtime" />
+		<PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.7.1" ExcludeAssets="runtime" />
+		<PackageReference Include="Mono.Cecil" Version="0.11.6" />
+		<PackageReference Update="@(PackageReference)" PrivateAssets="all" />
+	</ItemGroup>
+
+	<Import Project="..\..\Nebulae.Runtime.Emit.Inline.MSBuild\Nebulae.Runtime.Emit.Inline.MSBuild.projitems" Label="Shared" />
+
+</Project>

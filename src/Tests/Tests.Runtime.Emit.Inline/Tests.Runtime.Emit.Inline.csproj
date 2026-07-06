@@ -1,0 +1,44 @@
+<Project Sdk="MSTest.Sdk/4.0.2">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+		<CICD>inline-il-package</CICD>
+		<LangVersion>latest</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<UsePackagedInlineIL Condition=" '$(UsePackagedInlineIL)' == '' ">false</UsePackagedInlineIL>
+		<_InlineILTaskTargetFramework Condition="'$(TargetFramework)' == 'net10.0'">net10.0</_InlineILTaskTargetFramework>
+		<_InlineILTaskTargetFramework Condition="'$(TargetFramework)' != 'net10.0'">netstandard2.0</_InlineILTaskTargetFramework>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+		<PackageReference Include="Mono.Cecil" Version="0.11.6" PrivateAssets="all" />
+		<PackageReference Include="Nebulae.Runtime.Emit.Inline" Version="$(InlineILPackageVersion)" PrivateAssets="all" Condition="'$(UsePackagedInlineIL)' == 'true'" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(UsePackagedInlineIL)' != 'true'">
+		<ProjectReference Include="..\..\Projects\Nebulae.Runtime.Emit.Inline\Nebulae.Runtime.Emit.Inline.csproj" />
+		<ProjectReference Include="..\..\Projects\Nebulae.Runtime.Emit.Inline.MSBuild\Nebulae.Runtime.Emit.Inline.MSBuild.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+		<ProjectReference Include="..\..\Projects\Nebulae.Runtime.Emit.Inline.Analyzers\Nebulae.Runtime.Emit.Inline.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(UsePackagedInlineIL)' == 'true'">
+		<ProjectReference Include="..\..\Projects\Nebulae.Runtime.Emit.Inline.Analyzers\Nebulae.Runtime.Emit.Inline.Analyzers.csproj" PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="Fixtures\**\*.cs" />
+	</ItemGroup>
+
+	<!-- TaskFactory="TaskHostFactory" prevents the task assembly from being locked. -->
+	<UsingTask TaskName="Nebulae.Runtime.Emit.Inline.MSBuild.InlineILTask" AssemblyFile="$(MSBuildThisFileDirectory)..\..\Projects\Nebulae.Runtime.Emit.Inline.MSBuild\bin\$(Configuration)\$(_InlineILTaskTargetFramework)\Nebulae.Runtime.Emit.Inline.MSBuild.dll" TaskFactory="TaskHostFactory" Runtime="NET" Condition="'$(UsePackagedInlineIL)' != 'true'" />
+
+	<Target Name="InlineIL" AfterTargets="CoreCompile" BeforeTargets="CopyFilesToOutputDirectory" Condition="'$(UsePackagedInlineIL)' != 'true'">
+		<InlineILTask AssemblyPath="$(IntermediateOutputPath)$(TargetFileName)" DebugType="$(DebugType)" References="@(ReferencePath->'%(RootDir)%(Directory)')" Condition="Exists('$(IntermediateOutputPath)$(TargetFileName)')" />
+	</Target>
+
+</Project>

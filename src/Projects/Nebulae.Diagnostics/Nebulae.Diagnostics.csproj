@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+	</PropertyGroup>
+
+	<Import Project="..\..\Nebulae.Diagnostics\Nebulae.Diagnostics.projitems" Label="Shared" />
+
+	<Import Project="..\..\System.Runtime.CompilerServices\System.Runtime.CompilerServices.projitems" Label="Shared" />
+
+	<Import Project="..\..\System.Diagnostics.CodeAnalysis\System.Diagnostics.CodeAnalysis.projitems" Label="Shared" />
+
+</Project>
