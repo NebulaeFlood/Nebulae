@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Tests.Runtime.Emit.Inline.Support;
+using Tests.Runtime.Emit.Inline.Helpers;
 
 namespace Tests.Runtime.Emit.Inline.Analyzer;
 
@@ -19,11 +19,11 @@ public sealed class InvalidReferenceUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
 
         Assert.HasCount(1, diagnostics);
         Assert.AreEqual("NEBIL001", diagnostics[0].Id);
-        Assert.AreEqual("IL.Ref(typeof(string))", AnalyzerTestHost.GetSourceSnippet(source, diagnostics[0]));
+        Assert.AreEqual("IL.Ref(typeof(string))", AnalyzerTestHelpers.GetSourceSnippet(source, diagnostics[0]));
     }
 
     [TestMethod]
@@ -43,10 +43,10 @@ public sealed class InvalidReferenceUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
 
         Assert.HasCount(1, diagnostics);
         Assert.AreEqual("NEBIL001", diagnostics[0].Id);
-        Assert.AreEqual("IL.Ref(typeof(string))", AnalyzerTestHost.GetSourceSnippet(source, diagnostics[0]));
+        Assert.AreEqual("IL.Ref(typeof(string))", AnalyzerTestHelpers.GetSourceSnippet(source, diagnostics[0]));
     }
 }

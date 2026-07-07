@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Tests.Runtime.Emit.Inline.Support;
+using Tests.Runtime.Emit.Inline.Helpers;
 
 namespace Tests.Runtime.Emit.Inline.Analyzer;
 
@@ -19,11 +19,11 @@ public sealed class InvalidPlaceholderUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
 
         Assert.HasCount(1, diagnostics);
         Assert.AreEqual("NEBIL002", diagnostics[0].Id);
-        Assert.AreEqual("Expose", AnalyzerTestHost.GetSourceSnippet(source, diagnostics[0]));
+        Assert.AreEqual("Expose", AnalyzerTestHelpers.GetSourceSnippet(source, diagnostics[0]));
     }
 
     [TestMethod]
@@ -41,11 +41,11 @@ public sealed class InvalidPlaceholderUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
 
         Assert.HasCount(1, diagnostics);
         Assert.AreEqual("NEBIL002", diagnostics[0].Id);
-        Assert.AreEqual("reference = null!", AnalyzerTestHost.GetSourceSnippet(source, diagnostics[0]));
+        Assert.AreEqual("reference = null!", AnalyzerTestHelpers.GetSourceSnippet(source, diagnostics[0]));
     }
 
     [TestMethod]
@@ -61,11 +61,11 @@ public sealed class InvalidPlaceholderUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
 
         Assert.HasCount(1, diagnostics);
         Assert.AreEqual("NEBIL002", diagnostics[0].Id);
-        Assert.AreEqual("Expose", AnalyzerTestHost.GetSourceSnippet(source, diagnostics[0]));
+        Assert.AreEqual("Expose", AnalyzerTestHelpers.GetSourceSnippet(source, diagnostics[0]));
     }
 
     [TestMethod]
@@ -83,11 +83,11 @@ public sealed class InvalidPlaceholderUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
 
         Assert.HasCount(1, diagnostics);
         Assert.AreEqual("NEBIL002", diagnostics[0].Id);
-        Assert.AreEqual("InvalidContainer", AnalyzerTestHost.GetSourceSnippet(source, diagnostics[0]));
+        Assert.AreEqual("InvalidContainer", AnalyzerTestHelpers.GetSourceSnippet(source, diagnostics[0]));
     }
 
     [TestMethod]
@@ -105,10 +105,10 @@ public sealed class InvalidPlaceholderUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
 
         Assert.HasCount(1, diagnostics);
         Assert.AreEqual("NEBIL002", diagnostics[0].Id);
-        Assert.AreEqual("Constrain", AnalyzerTestHost.GetSourceSnippet(source, diagnostics[0]));
+        Assert.AreEqual("Constrain", AnalyzerTestHelpers.GetSourceSnippet(source, diagnostics[0]));
     }
 }

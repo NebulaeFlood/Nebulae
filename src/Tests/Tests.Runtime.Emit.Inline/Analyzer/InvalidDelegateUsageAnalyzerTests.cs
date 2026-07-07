@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Tests.Runtime.Emit.Inline.Support;
+using Tests.Runtime.Emit.Inline.Helpers;
 
 namespace Tests.Runtime.Emit.Inline.Analyzer;
 
@@ -25,10 +25,10 @@ public sealed class InvalidDelegateUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
 
         Assert.HasCount(1, diagnostics);
         Assert.AreEqual("NEBIL003", diagnostics[0].Id);
-        Assert.AreEqual("IL.Emit.Nop", AnalyzerTestHost.GetSourceSnippet(source, diagnostics[0]));
+        Assert.AreEqual("IL.Emit.Nop", AnalyzerTestHelpers.GetSourceSnippet(source, diagnostics[0]));
     }
 }

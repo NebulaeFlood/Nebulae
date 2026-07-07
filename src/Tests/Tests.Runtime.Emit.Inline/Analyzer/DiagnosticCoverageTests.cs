@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nebulae.Runtime.Emit.Inline.Analyzers;
-using Tests.Runtime.Emit.Inline.Support;
+using Tests.Runtime.Emit.Inline.Helpers;
 
 namespace Tests.Runtime.Emit.Inline.Analyzer;
 
@@ -30,7 +30,7 @@ public sealed class DiagnosticCoverageTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
         string[] supportedIds = new PlaceholderAnalyzer().SupportedDiagnostics
             .Select(static descriptor => descriptor.Id)
             .OrderBy(static id => id, StringComparer.Ordinal)
@@ -51,6 +51,6 @@ public sealed class DiagnosticCoverageTests
     {
         Diagnostic diagnostic = diagnostics.Single(diagnostic => diagnostic.Id == id);
         Assert.AreEqual(id, diagnostic.Id);
-        return AnalyzerTestHost.GetSourceSnippet(source, diagnostic);
+        return AnalyzerTestHelpers.GetSourceSnippet(source, diagnostic);
     }
 }

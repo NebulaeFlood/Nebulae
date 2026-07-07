@@ -5,9 +5,9 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nebulae.Runtime.Emit.Inline.Analyzers;
 
-namespace Tests.Runtime.Emit.Inline.Support;
+namespace Tests.Runtime.Emit.Inline.Helpers;
 
-internal static class AnalyzerTestHost
+internal static class AnalyzerTestHelpers
 {
     private const string InlineAssemblyFileName = "Nebulae.Runtime.Emit.Inline.dll";
 

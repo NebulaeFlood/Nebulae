@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Tests.Runtime.Emit.Inline.Support;
+using Tests.Runtime.Emit.Inline.Helpers;
 
 namespace Tests.Runtime.Emit.Inline.Analyzer;
 
@@ -27,7 +27,7 @@ public sealed class ValidUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
 
         Assert.IsEmpty(diagnostics);
     }
@@ -48,7 +48,7 @@ public sealed class ValidUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
 
         Assert.IsEmpty(diagnostics);
     }
@@ -73,7 +73,7 @@ public sealed class ValidUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
 
         Assert.IsEmpty(diagnostics);
     }
@@ -101,7 +101,7 @@ public sealed class ValidUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHost.GetDiagnosticsAsync(source);
+        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
 
         Assert.IsEmpty(diagnostics);
     }
