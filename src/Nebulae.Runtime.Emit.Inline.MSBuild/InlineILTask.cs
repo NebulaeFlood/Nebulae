@@ -29,7 +29,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
 
         public override bool Execute()
         {
-            //Debugger.Launch();
+            // System.Diagnostics.Debugger.Launch();
 
             try
             {
@@ -128,6 +128,8 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                     endLineNumber: point.EndLine,
                     endColumnNumber: point.EndColumn,
                     message: message);
+
+                e.Data.Remove(nameof(SequencePoint));
             }
             else
             {
