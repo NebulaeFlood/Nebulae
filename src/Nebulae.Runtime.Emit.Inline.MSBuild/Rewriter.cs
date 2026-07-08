@@ -59,7 +59,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                                 {
                                     throw new InvalidProgramException(
                                         $"Cannot resolve IL.Fail, the instruction sequence is incompatible.")
-                                        .With(nameof(Instruction), placeholder.Instruction);
+                                        .With(placeholder.Instruction);
                                 }
 
                                 do
@@ -71,7 +71,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                                 break;
                             default:
                                 throw new NotSupportedException($"Unsupported placeholder code: {placeholder.Code}.")
-                                    .With(nameof(Instruction), instruction);
+                                    .With(instruction);
                         }
                     }
                 }
@@ -80,46 +80,22 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
             }
             catch (Exception e)
             {
-                if (!e.Data.Contains(nameof(Instruction)) || e.Data[nameof(Instruction)] is not Instruction position)
+                if (!e.TryGetInstructionOffset(out int offset))
                 {
                     throw new InvalidProgramException(
                         $"Cannot inline IL code for method '{definition.FullName}'.", e);
                 }
-                else
+
+                if (!definition.TryGetSequencePoint(offset, out SequencePoint point))
                 {
-                    var points = definition.DebugInformation.SequencePoints;
-                    int last = points.Count - 1;
-
-                    int offset = position.Offset;
-                    SequencePoint point;
-
-                    for (int i = 0; i < last; i++)
-                    {
-                        var lo = points[i];
-                        var hi = points[i + 1];
-
-                        if (lo.Offset <= offset && offset < hi.Offset)
-                        {
-                            point = lo;
-                            goto Package;
-                        }
-                    }
-
-                    if (points.Count > 0)
-                    {
-                        point = points[0];
-                        goto Package;
-                    }
-
                     throw new InvalidProgramException(
-                        $"Cannot inline IL code for method '{definition.FullName}' at offset '{position.Offset:X4}'.", e);
-
-                Package:
-                    throw new InvalidProgramException(
-                        $"Cannot inline IL code for method '{definition.FullName}' at offset '{position.Offset:X4}'." +
-                        $"Line {point.StartLine}, column {point.StartColumn}.", e)
-                        .With(nameof(SequencePoint), point);
+                        $"Cannot inline IL code for method '{definition.FullName}' " +
+                        $"at offset '{offset:X4}'.", e);
                 }
+
+                throw new InvalidProgramException(
+                    $"Cannot inline IL code for method '{definition.FullName}' " +
+                    $"at offset '{offset:X4}'.", e).With(point);
             }
         }
 
@@ -145,7 +121,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                 PlaceholderOperand.Signature => instruction.ResolveMethodReference(context).MakeCallSite(),
                 _ => throw new InvalidProgramException(
                     $"Invalid placeholder operand type '{type}'.")
-                    .With(nameof(Instruction), instruction)
+                    .With(instruction)
             };
         }
 
@@ -410,7 +386,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                         {
                             throw new InvalidProgramException(
                                 $"Invalid IL code, the 'tail.' prefix must be followed by a call/calli/callvirt instruction.")
-                                .With(nameof(Instruction), instruction);
+                                .With(instruction);
                         }
 
                         instruction = instructions[i + 1];
@@ -419,7 +395,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                         {
                             throw new InvalidProgramException(
                                 $"Invalid IL code, the 'tail.' prefix must be followed by a call/calli/callvirt instruction.")
-                                .With(nameof(Instruction), instruction);
+                                .With(instruction);
                         }
 
                         instruction = instructions[i + 2];

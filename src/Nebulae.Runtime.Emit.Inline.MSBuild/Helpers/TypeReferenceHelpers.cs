@@ -393,7 +393,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
             return reference.Resolve()
                 ?? throw new InvalidOperationException(
                     $"Cannot resolve type reference '{GetFullName(reference)}'.")
-                    .With(nameof(Instruction), placeholder);
+                    .With(placeholder);
 
             static string GetFullName(TypeReference reference)
             {

@@ -263,7 +263,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
             TypeReference declaringType = instruction.GrabTypeReference(placeholder, ArgumentName);
             FieldReference field = declaringType.GetField(fieldName, placeholder) ?? throw new MissingFieldException(
                     $"Cannot find any field named '{fieldName}' in type '{declaringType.FullName}'.")
-                    .With(nameof(Instruction), placeholder);
+                    .With(placeholder);
 
             if (declaringType is GenericInstanceType)
             {
@@ -297,7 +297,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                     EventDefinition @event = instruction.GrabEventReference(placeholder, out TypeReference declaringType);
                     method = @event.AddMethod ?? throw new MissingMethodException(
                         $"Cannot find any add method for event '{@event.FullName}'.")
-                        .With(nameof(Instruction), placeholder);
+                        .With(placeholder);
                     method = method.BindDeclaringType(declaringType);
                     break;
                 case ReferenceType.EventRaise:
@@ -307,7 +307,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                     @event = instruction.GrabEventReference(placeholder, out declaringType);
                     method = @event.InvokeMethod ?? throw new MissingMethodException(
                         $"Cannot find any raise method for event '{@event.FullName}'.")
-                        .With(nameof(Instruction), placeholder);
+                        .With(placeholder);
                     method = method.BindDeclaringType(declaringType);
                     break;
                 case ReferenceType.EventRemove:
@@ -317,7 +317,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                     @event = instruction.GrabEventReference(placeholder, out declaringType);
                     method = @event.RemoveMethod ?? throw new MissingMethodException(
                         $"Cannot find any remove method for event '{@event.FullName}'.")
-                        .With(nameof(Instruction), placeholder);
+                        .With(placeholder);
                     method = method.BindDeclaringType(declaringType);
                     break;
                 case ReferenceType.IndexerGet:
@@ -327,7 +327,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                     PropertyDefinition indexer = instruction.GrabIndexerReference(placeholder, out declaringType);
                     method = indexer.GetMethod ?? throw new MissingMethodException(
                         $"Cannot find any get method for indexer '{indexer.FullName}'.")
-                        .With(nameof(Instruction), placeholder);
+                        .With(placeholder);
                     method = method.BindDeclaringType(declaringType);
                     break;
                 case ReferenceType.IndexerSet:
@@ -337,7 +337,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                     indexer = instruction.GrabIndexerReference(placeholder, out declaringType);
                     method = indexer.SetMethod ?? throw new MissingMethodException(
                         $"Cannot find any set method for indexer '{indexer.FullName}'.")
-                        .With(nameof(Instruction), placeholder);
+                        .With(placeholder);
                     method = method.BindDeclaringType(declaringType);
                     break;
                 case ReferenceType.Method:
@@ -360,7 +360,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                     PropertyDefinition property = instruction.GrabPropertyReference(placeholder, out declaringType);
                     method = property.GetMethod ?? throw new MissingMethodException(
                         $"Cannot find any get method for property '{property.FullName}'.")
-                        .With(nameof(Instruction), placeholder);
+                        .With(placeholder);
                     method = method.BindDeclaringType(declaringType);
                     break;
                 case ReferenceType.PropertySet:
@@ -370,7 +370,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                     property = instruction.GrabPropertyReference(placeholder, out declaringType);
                     method = property.SetMethod ?? throw new MissingMethodException(
                         $"Cannot find any set method for property '{property.FullName}'.")
-                        .With(nameof(Instruction), placeholder);
+                        .With(placeholder);
                     method = method.BindDeclaringType(declaringType);
                     break;
                 default:
@@ -621,7 +621,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
 
             MethodReference constructor = declaringType.GetConstructor(parameterTypes, placeholder) ?? throw new MissingMethodException(
                 $"Cannot find any constructor with the specified parameter types in type '{declaringType.FullName}'.")
-                .With(nameof(Instruction), placeholder);
+                .With(placeholder);
 
             return constructor.BindDeclaringType(declaringType);
         }
@@ -646,7 +646,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
             declaringType = instruction.GrabTypeReference(placeholder, ArgumentName);
             return declaringType.GetEvent(eventName, placeholder) ?? throw new MissingMemberException(
                 $"Cannot find any event named '{eventName}' in type '{declaringType.FullName}'.")
-                .With(nameof(Instruction), placeholder);
+                .With(placeholder);
         }
 
         private static PropertyDefinition GrabIndexerReference(this Instruction instruction, Instruction placeholder, out TypeReference declaringType)
@@ -669,7 +669,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
             declaringType = instruction.GrabTypeReference(placeholder, ArgumentName);
             return declaringType.GetIndexer(parameterTypes, placeholder) ?? throw new MissingMemberException(
                 $"Cannot find any indexer with the specified parameter types in type '{declaringType.FullName}'.")
-                .With(nameof(Instruction), placeholder);
+                .With(placeholder);
         }
 
         private static MethodReference GrabMethodReference(this Instruction instruction, Instruction placeholder)
@@ -696,7 +696,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                     MethodReference method = declaringType.GetMethod(methodName, returnType: null, parameterTypes: null, placeholder)
                         ?? throw new MissingMethodException(
                             $"Cannot find any method named '{methodName}' in type '{declaringType.FullName}'.")
-                            .With(nameof(Instruction), placeholder);
+                            .With(placeholder);
 
                     return method.BindDeclaringType(declaringType);
                 case 2:
@@ -714,7 +714,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                     method = declaringType.GetMethod(methodName, returnType: null, parameterTypes, placeholder)
                         ?? throw new MissingMethodException(
                             $"Cannot find any method named '{methodName}' with the specified parameter types in type '{declaringType.FullName}'.")
-                            .With(nameof(Instruction), placeholder);
+                            .With(placeholder);
 
                     return method.BindDeclaringType(declaringType);
                 case 3:
@@ -750,7 +750,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                     method = declaringType.GetMethod(methodName, returenType, parameterTypes, placeholder)
                         ?? throw new MissingMethodException(
                             $"Cannot find any method named '{methodName}' with the specified return type and parameter types in type '{declaringType.FullName}'.")
-                            .With(nameof(Instruction), placeholder);
+                            .With(placeholder);
 
                     return method.BindDeclaringType(declaringType);
                 default:
@@ -778,7 +778,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
             declaringType = instruction.GrabTypeReference(placeholder, ArgumentName);
             return declaringType.GetProperty(propertyName, placeholder) ?? throw new MissingMemberException(
                 $"Cannot find any property named '{propertyName}' in type '{declaringType.FullName}'.")
-                .With(nameof(Instruction), placeholder);
+                .With(placeholder);
         }
 
 
@@ -787,7 +787,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
         {
             throw new InvalidProgramException(
                 $"Cannot resolve target {argumentName}, the instruction sequence is incompatible.")
-                .With(nameof(Instruction), placeholder);
+                .With(placeholder);
         }
 
         private static Instruction FindNewArrayStart(this Instruction instruction, Instruction placeholder, string elementType, string argumentName)

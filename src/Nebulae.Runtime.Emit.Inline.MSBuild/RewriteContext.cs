@@ -155,7 +155,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                 if (instruction.OpCode.Code is not Code.Ldstr)
                 {
                     throw new InvalidProgramException($"Cannot resolve target {ArgumentName}, the instruction sequence is incompatible.")
-                        .With(nameof(Instruction), placeholder);
+                        .With(placeholder);
                 }
 
                 var label = (string)instruction.Operand;
@@ -164,13 +164,13 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                 if (label.Length is 0)
                 {
                     throw new InvalidProgramException($"Label name cannot be empty.")
-                        .With(nameof(Instruction), placeholder);
+                        .With(placeholder);
                 }
 
                 if (collector.ContainsKey(label))
                 {
                     throw new InvalidProgramException($"Duplicate label '{label}' defined.")
-                        .With(nameof(Instruction), placeholder);
+                        .With(placeholder);
                 }
 
                 placeholder.Consume();
@@ -250,7 +250,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
             if (!_customLabels.TryGetValue(label, out var target))
             {
                 throw new InvalidProgramException($"Label '{label}' is not defined.")
-                    .With(nameof(Instruction), source);
+                    .With(source);
             }
 
             if (!_labelMaps.TryGetValue(target, out var map))

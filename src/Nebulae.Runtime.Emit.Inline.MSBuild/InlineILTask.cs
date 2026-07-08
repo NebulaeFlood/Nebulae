@@ -1,6 +1,7 @@
 using Microsoft.Build.Framework;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Nebulae.Runtime.Emit.Inline.MSBuild.Helpers;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,7 +30,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
 
         public override bool Execute()
         {
-            //Debugger.Launch();
+            // System.Diagnostics.Debugger.Launch();
 
             try
             {
@@ -114,20 +115,20 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                 message += Environment.NewLine + inner.Message;
             }
 
-            if (e.Data.Contains(nameof(SequencePoint)))
+            if (e.TryGetFileInfo(out string file, out int startLine, out int startColumn, out int endLine, out int endColumn))
             {
-                var point = (SequencePoint)e.Data[nameof(SequencePoint)]!;
-
                 Log.LogError(
                     subcategory: null,
                     errorCode: null,
                     helpKeyword: null,
-                    file: point.Document.Url,
-                    lineNumber: point.StartLine,
-                    columnNumber: point.StartColumn,
-                    endLineNumber: point.EndLine,
-                    endColumnNumber: point.EndColumn,
+                    file: file,
+                    lineNumber: startLine,
+                    columnNumber: startColumn,
+                    endLineNumber: endLine,
+                    endColumnNumber: endColumn,
                     message: message);
+
+                e.Data.Remove(nameof(SequencePoint));
             }
             else
             {
