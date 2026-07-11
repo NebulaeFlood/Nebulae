@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nebulae.Runtime.Emit.Inline;
 
 namespace Tests.Runtime.Emit.Inline.Behavior;
@@ -46,6 +45,7 @@ public sealed class MemberReferenceBehaviorTests
         MemberTarget target = CreateTarget(71);
 
         Assert.AreEqual(71, target.Value);
+        Assert.IsNotNull(CreateObject());
     }
 
     private static int CallStaticMethod(int value)
@@ -109,6 +109,13 @@ public sealed class MemberReferenceBehaviorTests
     {
         IL.Emit.Ldarg(value);
         IL.Emit.Newobj(IL.Ref(typeof(MemberTarget)).Constructor(typeof(int)));
+        IL.Emit.Ret();
+        throw IL.Fail();
+    }
+
+    private static object CreateObject()
+    {
+        IL.Emit.Newobj(IL.Ref(typeof(object)).Constructor(Type.EmptyTypes));
         IL.Emit.Ret();
         throw IL.Fail();
     }

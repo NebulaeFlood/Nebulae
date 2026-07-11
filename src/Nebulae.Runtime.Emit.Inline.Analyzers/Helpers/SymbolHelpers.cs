@@ -1,10 +1,9 @@
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Operations;
 using System;
 
-namespace Nebulae.Runtime.Emit.Inline.Analyzers
+namespace Nebulae.Runtime.Emit.Inline.Analyzers.Helpers
 {
-    internal static class PlaceholderAnalyzerHelpers
+    internal static class SymbolHelpers
     {
         public static bool ContainsAttribute(this ISymbol symbol, INamedTypeSymbol attributeType)
         {
@@ -21,7 +20,9 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
             return false;
         }
 
-        public static bool ContainsAttribute(this ISymbol symbol, params ReadOnlySpan<INamedTypeSymbol> attributeTypes)
+        public static bool ContainsAttribute(
+            this ISymbol symbol,
+            params ReadOnlySpan<INamedTypeSymbol> attributeTypes)
         {
             var attributes = symbol.OriginalDefinition.GetAttributes();
 
@@ -41,17 +42,30 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
             return false;
         }
 
-        public static IOperation GetOutermostConversion(this IOperation operation)
+        public static PlaceholderInfo GetPlaceholderInfo(
+            this ISymbol symbol,
+            INamedTypeSymbol placeholderAttributeType)
         {
-            while (operation.Parent is IConversionOperation conversion)
+            var attributes = symbol.OriginalDefinition.GetAttributes();
+
+            for (int i = 0; i < attributes.Length; i++)
             {
-                operation = conversion;
+                var attribute = attributes[i];
+
+                if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, placeholderAttributeType))
+                {
+                    return new PlaceholderInfo(
+                        (PlaceholderCode)attribute.ConstructorArguments[0].Value!,
+                        (PlaceholderOperand)attribute.ConstructorArguments[1].Value!);
+                }
             }
 
-            return operation;
+            throw new InvalidOperationException("Symbol does not have the specified placeholder attribute.");
         }
 
-        public static ReferenceType GetReferenceType(this ISymbol symbol, INamedTypeSymbol referenceAttributeType)
+        public static ReferenceType GetReferenceType(
+            this ISymbol symbol,
+            INamedTypeSymbol referenceAttributeType)
         {
             var attributes = symbol.OriginalDefinition.GetAttributes();
 
@@ -68,17 +82,13 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
             throw new InvalidOperationException("Symbol does not have the specified reference attribute.");
         }
 
-        public static bool IsInside(this IOperation operation, INamedTypeSymbol? symbol)
+        public static bool IsInside(this IMethodSymbol method, IMethodSymbol owningMethod)
         {
-            if (symbol is null)
+            for (IMethodSymbol? current = method;
+                current is not null;
+                current = current.ContainingSymbol as IMethodSymbol)
             {
-                return false;
-            }
-
-            for (var current = operation.Parent; current is not null; current = current.Parent)
-            {
-                if (current.Type is INamedTypeSymbol namedType
-                    && SymbolEqualityComparer.Default.Equals(namedType.OriginalDefinition, symbol))
+                if (SymbolEqualityComparer.Default.Equals(current, owningMethod))
                 {
                     return true;
                 }

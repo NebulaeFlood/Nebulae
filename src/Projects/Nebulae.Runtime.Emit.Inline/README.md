@@ -10,13 +10,14 @@ The package also provides a simple Roslyn analyzer that prevents unsafe rewrites
 
 ## Installation
 
-This package should only be used as a compile‑time dependency, so you must set `PrivateAssets="all"`:
-
 ```xml
-<PackageReference Include="Nebulae.Runtime.Emit.Inline"
-                  Version="1.0.0"
-                  PrivateAssets="all" />
+<PackageReference Include="Nebulae.Runtime.Emit.Inline" Version="1.0.3">
+	<ExcludeAssets>runtime</ExcludeAssets>
+	<PrivateAssets>all</PrivateAssets>
+</PackageReference>
 ```
+
+This package should only be used as a compile‑time dependency, so you must set `PrivateAssets="all"`.
 
 If `PrivateAssets="all"` is not set, a build‑time check in the package will report an error directly.
 
@@ -24,11 +25,25 @@ If `PrivateAssets="all"` is not set, a build‑time check in the package will re
 
 ```csharp
 using Nebulae.Runtime.Emit.Inline;
+using System;
 
-static int Return42()
+static Action<T> CreateDelegate<T>(MethodInfo method)
 {
-    IL.Emit.Ldc_I4(42);
+    IL.Emit.Ldarg(method);
+    IL.Emit.Callvirt(
+        IL.Ref(typeof(MethodBase))
+            .Property(nameof(MethodBase.MethodHandle)).Get);
+    IL.Emit.Stloc(out RuntimeMethodHandle handle);
+    IL.Emit.Ldnull();
+    IL.Emit.Ldloca(handle);
+    IL.Emit.Call(
+        IL.Ref(typeof(RuntimeMethodHandle))
+            .Method(nameof(RuntimeMethodHandle.GetFunctionPointer)));
+    IL.Emit.Newobj(
+        IL.Ref(typeof(Action<T>))
+            .Constructor(typeof(object), typeof(nint)));
     IL.Emit.Ret();
+
     throw IL.Fail();
 }
 ```

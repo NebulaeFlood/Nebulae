@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Mono.Cecil.Cil;
 using Nebulae.Runtime.Emit.Inline;
 using Tests.Runtime.Emit.Inline.Helpers;

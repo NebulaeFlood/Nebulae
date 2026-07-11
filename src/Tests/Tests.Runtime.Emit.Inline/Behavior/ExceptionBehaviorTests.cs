@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nebulae.Runtime.Emit.Inline;
 
 namespace Tests.Runtime.Emit.Inline.Behavior;

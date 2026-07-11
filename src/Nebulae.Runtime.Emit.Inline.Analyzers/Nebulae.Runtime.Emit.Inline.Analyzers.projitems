@@ -10,7 +10,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)PlaceholderAnalyzer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PlaceholderAnalyzerHelpers.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PlaceholderAnalyzerState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LabelAnalyzerState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PlaceholderInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\DiagnosticReportHelpers.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\OperationHelpers.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\SymbolHelpers.cs" />
   </ItemGroup>
 </Project>

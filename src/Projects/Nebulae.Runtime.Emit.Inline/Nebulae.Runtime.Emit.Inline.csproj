@@ -7,8 +7,6 @@
 
 	<PropertyGroup>
 		<Description>A simple library to inline IL code.</Description>
-
-		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 		<NoWarn>$(NoWarn);NU5100</NoWarn>
 
 		<TargetsForTfmSpecificContentInPackage>

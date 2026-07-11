@@ -117,6 +117,15 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="DuplicateLabelDescription" xml:space="preserve">
+    <value>每个方法中的同名内联 IL 标签最多只能定义一次。</value>
+  </data>
+  <data name="DuplicateLabelMessage" xml:space="preserve">
+    <value>标签 '{0}' 被重复定义</value>
+  </data>
+  <data name="DuplicateLabelTitle" xml:space="preserve">
+    <value>内联 IL 标签被重复定义</value>
+  </data>
   <data name="InvalidContextDescription" xml:space="preserve">
     <value>占位符成员必须为可执行方法体中的直接调用。</value>
   </data>
@@ -125,6 +134,24 @@
   </data>
   <data name="InvalidContextTitle" xml:space="preserve">
     <value>内联 IL 占位符成员用于不受支持的上下文</value>
+  </data>
+  <data name="InvalidOperandValueDescription" xml:space="preserve">
+    <value>内联 IL 操作数必须使用目标指令支持的值。</value>
+  </data>
+  <data name="InvalidOperandValueMessage" xml:space="preserve">
+    <value>内联 IL 占位符成员 '{0}' 的操作数值无效</value>
+  </data>
+  <data name="InvalidOperandValueTitle" xml:space="preserve">
+    <value>内联 IL 操作数值无效</value>
+  </data>
+  <data name="NonConstantOperandDescription" xml:space="preserve">
+    <value>内联 IL 标量操作数必须是 C# 编译器能够确定的常量。</value>
+  </data>
+  <data name="NonConstantOperandMessage" xml:space="preserve">
+    <value>内联 IL 占位符成员 '{0}' 的操作数必须是编译期常量</value>
+  </data>
+  <data name="NonConstantOperandTitle" xml:space="preserve">
+    <value>内联 IL 操作数不是编译期常量</value>
   </data>
   <data name="PlaceholderTypeDescription" xml:space="preserve">
     <value>内联 IL 占位符程序集中的类型不能出现在声明或局部存储中。</value>
@@ -143,5 +170,14 @@
   </data>
   <data name="ReferenceEscapeTitle" xml:space="preserve">
     <value>内联 IL 引用值逃离了占位符表达式</value>
+  </data>
+  <data name="UndefinedLabelDescription" xml:space="preserve">
+    <value>内联 IL 目标分支引用的标签未在方法体中定义。</value>
+  </data>
+  <data name="UndefinedLabelMessage" xml:space="preserve">
+    <value>内联 IL 目标分支 '{0}' 未在方法体中定义</value>
+  </data>
+  <data name="UndefinedLabelTitle" xml:space="preserve">
+    <value>内联 IL 分支目标未定义</value>
   </data>
 </root>

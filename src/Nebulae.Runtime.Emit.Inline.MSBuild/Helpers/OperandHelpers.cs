@@ -131,8 +131,9 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                 case Code.Conv_I8:
                 case Code.Conv_U8:
                     instruction.Consume();
-                    instruction.AcquirePrevious(placeholder, ArgumentName);
-                    return instruction.GrabInt32(placeholder, ArgumentName);
+                    return instruction
+                        .AcquirePrevious(placeholder, ArgumentName)
+                        .GrabInt32(placeholder, ArgumentName);
                 default:
                     throw placeholder.Fail(ArgumentName);
             }
@@ -524,7 +525,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
 
         private static TypeReference[] GrabTypeArray(this Instruction instruction, Instruction placeholder, string argumentName, out Instruction start)
         {
-            if (instruction.IsCallArrayEmpty())
+            if (instruction.IsCallArrayEmpty() || instruction.IsLoadTypeEmptyTypes())
             {
                 start = instruction;
 

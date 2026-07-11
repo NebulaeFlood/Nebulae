@@ -183,7 +183,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                                 }
                                 break;
                         }
-                        break;
+                        continue;
                     case Code.Ldarga:
                         index = ((ParameterDefinition)operand).Index;
 
@@ -200,7 +200,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                         {
                             instruction.OpCode = OpCodes.Ldarga_S;
                         }
-                        break;
+                        continue;
                     case Code.Ldloc:
                         index = ((VariableDefinition)operand).Index;
 
@@ -229,7 +229,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                                 }
                                 break;
                         }
-                        break;
+                        continue;
                     case Code.Ldloca:
                         index = ((VariableDefinition)operand).Index;
 
@@ -237,7 +237,24 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                         {
                             instruction.OpCode = OpCodes.Ldloca_S;
                         }
-                        break;
+                        continue;
+                    case Code.Starg:
+                        index = ((ParameterDefinition)operand).Index;
+
+                        if (index is -1 && operand == body.ThisParameter)
+                        {
+                            index = 0;
+                        }
+                        else if (definition.HasThis)
+                        {
+                            index++;
+                        }
+
+                        if (index <= byte.MaxValue)
+                        {
+                            instruction.OpCode = OpCodes.Starg_S;
+                        }
+                        continue;
                     case Code.Stloc:
                         index = ((VariableDefinition)operand).Index;
 
@@ -266,7 +283,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                                 }
                                 break;
                         }
-                        break;
+                        continue;
                     case Code.Ldelem_Any:
                         switch (((TypeReference)instruction.Operand).MetadataType)
                         {
@@ -326,7 +343,64 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                             default:
                                 break;
                         }
-                        break;
+                        continue;
+                    case Code.Stelem_Any:
+                        switch (((TypeReference)instruction.Operand).MetadataType)
+                        {
+                            case MetadataType.SByte:
+                                instruction.OpCode = OpCodes.Stelem_I1;
+                                instruction.Operand = null;
+                                break;
+                            case MetadataType.Byte:
+                            case MetadataType.Boolean:
+                                instruction.OpCode = OpCodes.Stelem_I1;
+                                instruction.Operand = null;
+                                break;
+                            case MetadataType.Int16:
+                                instruction.OpCode = OpCodes.Stelem_I2;
+                                instruction.Operand = null;
+                                break;
+                            case MetadataType.UInt16:
+                            case MetadataType.Char:
+                                instruction.OpCode = OpCodes.Stelem_I2;
+                                instruction.Operand = null;
+                                break;
+                            case MetadataType.Int32:
+                            case MetadataType.UInt32:
+                                instruction.OpCode = OpCodes.Stelem_I4;
+                                instruction.Operand = null;
+                                break;
+                            case MetadataType.Int64:
+                            case MetadataType.UInt64:
+                                instruction.OpCode = OpCodes.Stelem_I8;
+                                instruction.Operand = null;
+                                break;
+                            case MetadataType.Single:
+                                instruction.OpCode = OpCodes.Stelem_R4;
+                                instruction.Operand = null;
+                                break;
+                            case MetadataType.Double:
+                                instruction.OpCode = OpCodes.Stelem_R8;
+                                instruction.Operand = null;
+                                break;
+                            case MetadataType.Array:
+                            case MetadataType.Class:
+                            case MetadataType.Object:
+                            case MetadataType.String:
+                                instruction.OpCode = OpCodes.Stelem_Ref;
+                                instruction.Operand = null;
+                                break;
+                            case MetadataType.Pointer:
+                            case MetadataType.IntPtr:
+                            case MetadataType.UIntPtr:
+                            case MetadataType.FunctionPointer:
+                                instruction.OpCode = OpCodes.Stelem_I;
+                                instruction.Operand = null;
+                                break;
+                            default:
+                                break;
+                        }
+                        continue;
                     case Code.Ldc_I4:
                         int value = (int)operand;
 
@@ -380,9 +454,9 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                                 }
                                 break;
                         }
-                        break;
+                        continue;
                     case Code.Tail:
-                        if (i >= instructions.Count)
+                        if (i + 2 >= instructions.Count)
                         {
                             throw new InvalidProgramException(
                                 $"Invalid IL code, the 'tail.' prefix must be followed by a call/calli/callvirt instruction.")
@@ -405,8 +479,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                             context.Remove(instruction);
                             instructions.RemoveAt(i + 2);
                         }
-
-                        break;
+                        continue;
                 }
 
                 if (!anyBranch && instruction.OpCode.OperandType is OperandType.InlineBrTarget)
@@ -420,6 +493,8 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                 return;
             }
 
+        Retry:
+            bool changed = false;
             instructions.Measure();
 
             for (int i = 0; i < instructions.Count; i++)
@@ -432,10 +507,10 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                 }
 
                 var opCode = instruction.OpCode;
-                // target - (start + op_size + offset_size)
-                var offset = ((Instruction)instruction.Operand).Offset - (instruction.Offset + opCode.Size + 4);
+                // target - (start + op_size)
+                var offset = ((Instruction)instruction.Operand).Offset - (instruction.Offset + opCode.Size);
 
-                if (offset >= sbyte.MinValue && offset <= sbyte.MaxValue)
+                if (offset - 1 >= sbyte.MinValue && offset - 4 <= sbyte.MaxValue)
                 {
                     instruction.OpCode = opCode.Code switch
                     {
@@ -456,8 +531,13 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                         _ => opCode
                     };
 
-                    instructions.Measure();
+                    changed = true;
                 }
+            }
+
+            if (changed)
+            {
+                goto Retry;
             }
         }
 

@@ -117,6 +117,15 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="DuplicateLabelDescription" xml:space="preserve">
+    <value>Inline IL labels with the same name must be defined at most once in each method.</value>
+  </data>
+  <data name="DuplicateLabelMessage" xml:space="preserve">
+    <value>Label '{0}' is defined more than once</value>
+  </data>
+  <data name="DuplicateLabelTitle" xml:space="preserve">
+    <value>Inline IL label is defined more than once</value>
+  </data>
   <data name="InvalidContextDescription" xml:space="preserve">
     <value>Placeholder members must be direct calls in an executable method body.</value>
   </data>
@@ -125,6 +134,24 @@
   </data>
   <data name="InvalidContextTitle" xml:space="preserve">
     <value>Inline IL placeholder member is used in an unsupported context</value>
+  </data>
+  <data name="InvalidOperandValueDescription" xml:space="preserve">
+    <value>Inline IL operands must use values supported by the target instruction.</value>
+  </data>
+  <data name="InvalidOperandValueMessage" xml:space="preserve">
+    <value>Operand for inline IL placeholder member '{0}' has an invalid value</value>
+  </data>
+  <data name="InvalidOperandValueTitle" xml:space="preserve">
+    <value>Inline IL operand has an invalid value</value>
+  </data>
+  <data name="NonConstantOperandDescription" xml:space="preserve">
+    <value>Inline IL scalar operands must be known by the C# compiler as constants.</value>
+  </data>
+  <data name="NonConstantOperandMessage" xml:space="preserve">
+    <value>Operand for inline IL placeholder member '{0}' must be a compile-time constant</value>
+  </data>
+  <data name="NonConstantOperandTitle" xml:space="preserve">
+    <value>Inline IL operand is not a compile-time constant</value>
   </data>
   <data name="PlaceholderTypeDescription" xml:space="preserve">
     <value>Types from the inline IL placeholder assembly cannot occur in declarations or local storage.</value>
@@ -143,5 +170,14 @@
   </data>
   <data name="ReferenceEscapeTitle" xml:space="preserve">
     <value>Inline IL reference value escapes its placeholder expression</value>
+  </data>
+  <data name="UndefinedLabelDescription" xml:space="preserve">
+    <value>The label referenced by an inline IL branch target is not defined in the method body.</value>
+  </data>
+  <data name="UndefinedLabelMessage" xml:space="preserve">
+    <value>Inline IL branch target '{0}' is not defined in the method body</value>
+  </data>
+  <data name="UndefinedLabelTitle" xml:space="preserve">
+    <value>Inline IL branch target is not defined</value>
   </data>
 </root>

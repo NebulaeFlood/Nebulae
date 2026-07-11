@@ -1,12 +1,49 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Tests.Runtime.Emit.Inline.Helpers;
 
 namespace Tests.Runtime.Emit.Inline.Analyzer;
 
 [TestClass]
-public sealed class ValidUsageAnalyzerTests
+public sealed class NEBIL001AnalyzerTests
 {
+    [TestMethod]
+    public async Task ReturningAReferencePlaceholderProducesReferenceEscapeDiagnostic()
+    {
+        const string source = """
+            using Nebulae.Runtime.Emit.Inline;
+
+            static class Example
+            {
+                public static object Escape() => IL.Ref(typeof(string));
+            }
+            """;
+
+        await AnalyzerTestHelpers.VerifyDiagnosticsAsync(
+            source,
+            AnalyzerTestHelpers.Diagnostic("NEBIL001", "IL.Ref(typeof(string))"));
+    }
+
+    [TestMethod]
+    public async Task PassingAReferencePlaceholderToOrdinaryCodeProducesReferenceEscapeDiagnostic()
+    {
+        const string source = """
+            using Nebulae.Runtime.Emit.Inline;
+
+            static class Example
+            {
+                public static void Use()
+                {
+                    Consume(IL.Ref(typeof(string)));
+                }
+
+                private static void Consume(object value) { }
+            }
+            """;
+
+        await AnalyzerTestHelpers.VerifyDiagnosticsAsync(
+            source,
+            AnalyzerTestHelpers.Diagnostic("NEBIL001", "IL.Ref(typeof(string))"));
+    }
+
     [TestMethod]
     public async Task DirectReferenceChainsProduceNoDiagnostics()
     {
@@ -27,30 +64,7 @@ public sealed class ValidUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
-
-        Assert.IsEmpty(diagnostics);
-    }
-
-    [TestMethod]
-    public async Task PlaceholderCallsProduceNoDiagnosticsInMethodBodies()
-    {
-        const string source = """
-            using Nebulae.Runtime.Emit.Inline;
-
-            static class Example
-            {
-                public static void Use()
-                {
-                    IL.Emit.Ldc_I4(42);
-                    IL.Emit.Pop();
-                }
-            }
-            """;
-
-        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
-
-        Assert.IsEmpty(diagnostics);
+        await AnalyzerTestHelpers.VerifyNoDiagnosticsAsync(source);
     }
 
     [TestMethod]
@@ -73,9 +87,7 @@ public sealed class ValidUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
-
-        Assert.IsEmpty(diagnostics);
+        await AnalyzerTestHelpers.VerifyNoDiagnosticsAsync(source);
     }
 
     [TestMethod]
@@ -101,8 +113,6 @@ public sealed class ValidUsageAnalyzerTests
             }
             """;
 
-        var diagnostics = await AnalyzerTestHelpers.GetDiagnosticsAsync(source);
-
-        Assert.IsEmpty(diagnostics);
+        await AnalyzerTestHelpers.VerifyNoDiagnosticsAsync(source);
     }
 }

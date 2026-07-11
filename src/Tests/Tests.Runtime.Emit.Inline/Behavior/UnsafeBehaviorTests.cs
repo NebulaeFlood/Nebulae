@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nebulae.Runtime.Emit.Inline;
 
 namespace Tests.Runtime.Emit.Inline.Behavior;
@@ -42,6 +41,14 @@ public sealed class UnsafeBehaviorTests
         Assert.AreEqual(107, values[0]);
     }
 
+    [TestMethod]
+    public void TypedReferenceTypeCanBeRead()
+    {
+        int value = 109;
+
+        Assert.AreEqual(typeof(int).TypeHandle, GetTypedReferenceType(ref value));
+    }
+
     private static int InvokeStaticFunctionPointer()
     {
         IL.Emit.Ldftn(IL.Ref(typeof(FunctionTarget)).Method(nameof(FunctionTarget.GetValue)));
@@ -73,6 +80,15 @@ public sealed class UnsafeBehaviorTests
         IL.Emit.Ldarg((nint)pointer);
         IL.Emit.Ldarg(value);
         IL.Emit.Stind_I4();
+        IL.Emit.Ret();
+        throw IL.Fail();
+    }
+
+    private static RuntimeTypeHandle GetTypedReferenceType(ref int value)
+    {
+        IL.Emit.Ldarg(value);
+        IL.Emit.Mkrefany(typeof(int));
+        IL.Emit.Refanytype();
         IL.Emit.Ret();
         throw IL.Fail();
     }

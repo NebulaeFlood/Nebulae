@@ -22,6 +22,8 @@
 	</ItemGroup>
 	
 	<ItemGroup>
+	  <Compile Include="..\..\Nebulae.Runtime.Emit.Inline\PlaceholderCode.cs" Link="PlaceholderCode.cs" />
+	  <Compile Include="..\..\Nebulae.Runtime.Emit.Inline\PlaceholderOperand.cs" Link="PlaceholderOperand.cs" />
 	  <Compile Include="..\..\Nebulae.Runtime.Emit.Inline\ReferenceType.cs" Link="ReferenceType.cs" />
 	</ItemGroup>
 	

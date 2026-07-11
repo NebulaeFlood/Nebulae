@@ -1669,9 +1669,8 @@ namespace Nebulae.Runtime.Emit.Inline
             /// <summary>
             /// 从类型化引用中取得运行时类型句柄
             /// </summary>
-            /// <param name="type">类型化引用包含的类型</param>
-            [Placeholder(PlaceholderCode.Refanytype, PlaceholderOperand.TypeRef)]
-            public static void Refanytype(Type type)
+            [Placeholder(PlaceholderCode.Refanytype)]
+            public static void Refanytype()
             {
                 IL.Throw();
             }

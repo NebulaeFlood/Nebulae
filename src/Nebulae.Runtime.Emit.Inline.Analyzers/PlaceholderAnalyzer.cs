@@ -13,11 +13,19 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
         private const string PlaceholderAttributeMetadataName = "Nebulae.Runtime.Emit.Inline.PlaceholderAttribute";
         private const string ReferenceAttributeMetadataName = "Nebulae.Runtime.Emit.Inline.ReferenceAttribute";
         private const string ExpressionMetadataName = "System.Linq.Expressions.Expression`1";
+        private const string TypeMetadataName = "System.Type";
 
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
-            get => ImmutableArray.Create(ReferenceEscapeRule, PlaceholderTypeRule, InvalidContextRule);
+            get => ImmutableArray.Create(
+                ReferenceEscapeRule,
+                PlaceholderTypeRule,
+                InvalidContextRule,
+                NonConstantOperandRule,
+                InvalidOperandValueRule,
+                DuplicateLabelRule,
+                UndefinedLabelRule);
         }
 
 
@@ -52,12 +60,14 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
 
             IAssemblySymbol placeholderAssembly = placeholderAttribute.ContainingAssembly;
             INamedTypeSymbol? expressionType = compilation.GetTypeByMetadataName(ExpressionMetadataName);
+            INamedTypeSymbol? systemType = compilation.GetTypeByMetadataName(TypeMetadataName);
 
             var state = new PlaceholderAnalyzerState(
                 placeholderAttribute,
                 referenceAttribute,
                 placeholderAssembly,
-                expressionType);
+                expressionType,
+                systemType);
 
             context.RegisterSymbolAction(
                 state.AnalyzeDeclaredSymbol,
@@ -72,6 +82,7 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
             context.RegisterOperationAction(state.AnalyzePropertyReference, OperationKind.PropertyReference);
             context.RegisterOperationAction(state.AnalyzeTypeOf, OperationKind.TypeOf);
             context.RegisterOperationAction(state.AnalyzeVariableDeclarator, OperationKind.VariableDeclarator);
+            context.RegisterOperationBlockStartAction(state.AnalyzeOperationBlockStart);
         }
 
 
@@ -109,6 +120,42 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: new LocalizableResourceString("InvalidContextDescription", Resources.ResourceManager, typeof(Resources)));
+
+        internal static readonly DiagnosticDescriptor NonConstantOperandRule = new(
+            id: "NEBIL004",
+            title: new LocalizableResourceString("NonConstantOperandTitle", Resources.ResourceManager, typeof(Resources)),
+            messageFormat: new LocalizableResourceString("NonConstantOperandMessage", Resources.ResourceManager, typeof(Resources)),
+            category: "Usage",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: new LocalizableResourceString("NonConstantOperandDescription", Resources.ResourceManager, typeof(Resources)));
+
+        internal static readonly DiagnosticDescriptor InvalidOperandValueRule = new(
+            id: "NEBIL005",
+            title: new LocalizableResourceString("InvalidOperandValueTitle", Resources.ResourceManager, typeof(Resources)),
+            messageFormat: new LocalizableResourceString("InvalidOperandValueMessage", Resources.ResourceManager, typeof(Resources)),
+            category: "Usage",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: new LocalizableResourceString("InvalidOperandValueDescription", Resources.ResourceManager, typeof(Resources)));
+
+        internal static readonly DiagnosticDescriptor DuplicateLabelRule = new(
+            id: "NEBIL006",
+            title: new LocalizableResourceString("DuplicateLabelTitle", Resources.ResourceManager, typeof(Resources)),
+            messageFormat: new LocalizableResourceString("DuplicateLabelMessage", Resources.ResourceManager, typeof(Resources)),
+            category: "Usage",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: new LocalizableResourceString("DuplicateLabelDescription", Resources.ResourceManager, typeof(Resources)));
+
+        internal static readonly DiagnosticDescriptor UndefinedLabelRule = new(
+            id: "NEBIL007",
+            title: new LocalizableResourceString("UndefinedLabelTitle", Resources.ResourceManager, typeof(Resources)),
+            messageFormat: new LocalizableResourceString("UndefinedLabelMessage", Resources.ResourceManager, typeof(Resources)),
+            category: "Usage",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: new LocalizableResourceString("UndefinedLabelDescription", Resources.ResourceManager, typeof(Resources)));
 
         #endregion
     }

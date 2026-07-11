@@ -14,6 +14,15 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                 && method.DeclaringType.FullName.Equals("System.Array", StringComparison.Ordinal);
         }
 
+        public static bool IsLoadTypeEmptyTypes(this Instruction instruction)
+        {
+            return instruction.OpCode.Code is Code.Ldsfld
+                && instruction.Operand is FieldReference field
+                && field.Name.Equals(nameof(Type.EmptyTypes), StringComparison.Ordinal)
+                && field.DeclaringType.FullName.Equals("System.Type", StringComparison.Ordinal)
+                && field.FieldType.FullName.Equals("System.Type[]", StringComparison.Ordinal);
+        }
+
         public static bool IsCallGetTypeFromHandle(this Instruction instruction)
         {
             return instruction.OpCode.Code is Code.Call

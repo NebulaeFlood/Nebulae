@@ -1,18 +1,45 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
+using Nebulae.Runtime.Emit.Inline.Analyzers.Helpers;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Nebulae.Runtime.Emit.Inline.Analyzers
 {
-    internal sealed class PlaceholderAnalyzerState(INamedTypeSymbol placeholderAttribute, INamedTypeSymbol referenceAttribute, IAssemblySymbol placeholderAssembly, INamedTypeSymbol? expressionType)
+    internal sealed class PlaceholderAnalyzerState(
+        INamedTypeSymbol placeholderAttribute,
+        INamedTypeSymbol referenceAttribute,
+        IAssemblySymbol placeholderAssembly,
+        INamedTypeSymbol? expressionType,
+        INamedTypeSymbol? systemType)
     {
+        //------------------------------------------------------
+        //
+        //  Public Fields
+        //
+        //------------------------------------------------------
+
+        #region Public Fields
+
         public readonly INamedTypeSymbol PlaceholderAttribute = placeholderAttribute;
         public readonly INamedTypeSymbol ReferenceAttribute = referenceAttribute;
         public readonly IAssemblySymbol PlaceholderAssembly = placeholderAssembly;
         public readonly INamedTypeSymbol? ExpressionType = expressionType;
 
+        public readonly INamedTypeSymbol? SystemType = systemType;
+
+        #endregion
+
+
+        //------------------------------------------------------
+        //
+        //  Public Methods
+        //
+        //------------------------------------------------------
+
+        #region Public Methods
 
         public void AnalyzeDeclaredSymbol(SymbolAnalysisContext context)
         {
@@ -101,11 +128,10 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
                 if (location is not null)
                 {
                     context.ReportDiagnostic(
-                        Diagnostic.Create(
-                            PlaceholderAnalyzer.PlaceholderTypeRule,
-                            location,
-                            symbol.Name,
-                            placeholder.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+                        PlaceholderAnalyzer.PlaceholderTypeRule,
+                        location,
+                        symbol.Name,
+                        placeholder.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
                 }
             }
         }
@@ -120,12 +146,14 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
                 if (context.ContainingSymbol is not IMethodSymbol || invocation.IsInside(ExpressionType))
                 {
                     context.ReportDiagnostic(
-                        Diagnostic.Create(
-                            PlaceholderAnalyzer.InvalidContextRule,
-                            invocation.Syntax.GetLocation(),
-                            method.Name));
+                        PlaceholderAnalyzer.InvalidContextRule,
+                        invocation,
+                        method.Name);
+
+                    return;
                 }
 
+                AnalyzeConstantParameter(context, invocation, method.GetPlaceholderInfo(PlaceholderAttribute));
                 return;
             }
 
@@ -134,6 +162,7 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
                 return;
             }
 
+            AnalyzeConstantParameters(context, invocation);
             AnalyzeReference(context, invocation);
         }
 
@@ -148,10 +177,9 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
             }
 
             context.ReportDiagnostic(
-                Diagnostic.Create(
-                    PlaceholderAnalyzer.InvalidContextRule,
-                    reference.Syntax.GetLocation(),
-                    method.Name));
+                PlaceholderAnalyzer.InvalidContextRule,
+                reference,
+                method.Name);
         }
 
         public void AnalyzePropertyReference(OperationAnalysisContext context)
@@ -175,14 +203,14 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
 
             foreach (var placeholder in placeholders)
             {
-                var type = placeholder.GetReferenceType(ReferenceAttribute);
+                ReferenceType type = placeholder.GetReferenceType(ReferenceAttribute);
 
                 if (type is not ReferenceType.Generic)
                 {
                     goto Report;
                 }
 
-                var current = operation.Parent;
+                IOperation? current = operation.Parent;
 
                 while (true)
                 {
@@ -207,11 +235,9 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
                 }
 
                 continue;
+
             Report:
-                context.ReportDiagnostic(
-                    Diagnostic.Create(
-                        PlaceholderAnalyzer.ReferenceEscapeRule,
-                        operation.Syntax.GetLocation()));
+                context.ReportDiagnostic(PlaceholderAnalyzer.ReferenceEscapeRule, operation);
             }
         }
 
@@ -224,22 +250,265 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
             foreach (var placeholder in placeholders)
             {
                 context.ReportDiagnostic(
-                    Diagnostic.Create(
-                        PlaceholderAnalyzer.PlaceholderTypeRule,
-                        declarator.Syntax.GetLocation(),
-                        declarator.Symbol.Name,
-                        placeholder.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+                    PlaceholderAnalyzer.PlaceholderTypeRule,
+                    declarator,
+                    declarator.Symbol.Name,
+                    placeholder.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
             }
         }
 
+        public void AnalyzeOperationBlockStart(OperationBlockStartAnalysisContext context)
+        {
+            if (context.OwningSymbol is not IMethodSymbol symbol)
+            {
+                return;
+            }
+
+            var state = new LabelAnalyzerState(
+                symbol,
+                PlaceholderAttribute,
+                ExpressionType);
+
+            context.RegisterOperationAction(state.AnalyzeInvocation, OperationKind.Invocation);
+            context.RegisterOperationBlockEndAction(state.Complete);
+        }
+
+        #endregion
+
+
+        //------------------------------------------------------
+        //
+        //  Private Static Methods
+        //
+        //------------------------------------------------------
+
+        #region Private Static Methods
+
+        private static void AnalyzeConstantValue(
+            OperationAnalysisContext context,
+            IOperation operation,
+            IMethodSymbol method,
+            PlaceholderCode code,
+            PlaceholderOperand operand)
+        {
+            switch (code)
+            {
+                case PlaceholderCode.Unaligned:
+                    byte value = (byte)operation.ConstantValue.Value!;
+
+                    if (value is not 1 and not 2 and not 4)
+                    {
+                        context.ReportDiagnostic(
+                            PlaceholderAnalyzer.InvalidOperandValueRule,
+                            operation,
+                            method.Name);
+                    }
+                    return;
+                case PlaceholderCode.No:
+                    value = (byte)operation.ConstantValue.Value!;
+
+                    if (value < 1 || value > 7)
+                    {
+                        context.ReportDiagnostic(
+                            PlaceholderAnalyzer.InvalidOperandValueRule,
+                            operation,
+                            method.Name);
+                    }
+                    return;
+            }
+
+            switch (operand)
+            {
+                case PlaceholderOperand.String:
+                    AnalyzeConstantString(context, operation, method, allowEmpty: code is not PlaceholderCode.Label);
+                    return;
+                case PlaceholderOperand.Branch:
+                    AnalyzeConstantString(context, operation, method, allowEmpty: false);
+                    return;
+            }
+        }
+
+        private static void AnalyzeConstantString(
+            OperationAnalysisContext context,
+            IOperation operation,
+            IMethodSymbol method,
+            bool allowEmpty)
+        {
+            if (operation.ConstantValue.Value is not string value || (!allowEmpty && value.Length is 0))
+            {
+                context.ReportDiagnostic(
+                    PlaceholderAnalyzer.InvalidOperandValueRule,
+                    operation,
+                    method.Name);
+            }
+        }
+
+        #endregion
+
+
+        //------------------------------------------------------
+        //
+        //  Private Methods
+        //
+        //------------------------------------------------------
+
+        #region Private Methods
+
+        private void AnalyzeArrayItems(
+            OperationAnalysisContext context,
+            IOperation operation,
+            IMethodSymbol method,
+            Func<IOperation, bool> isConstant,
+            Action<IOperation>? analyzeValue = null)
+        {
+            operation = operation.GetInnermostConversion();
+
+            if (isConstant(operation))
+            {
+                analyzeValue?.Invoke(operation);
+                return;
+            }
+
+            if (operation.VisitArrayItems(AnalyzeItem))
+            {
+                return;
+            }
+
+            context.ReportDiagnostic(
+                PlaceholderAnalyzer.NonConstantOperandRule,
+                operation,
+                method.Name);
+
+            void AnalyzeItem(IOperation value)
+            {
+                if (!isConstant(value))
+                {
+                    context.ReportDiagnostic(
+                        PlaceholderAnalyzer.NonConstantOperandRule,
+                        value,
+                        method.Name);
+                }
+                else
+                {
+                    analyzeValue?.Invoke(value);
+                }
+            }
+        }
+
+        private void AnalyzeConstantParameter(
+            OperationAnalysisContext context,
+            IInvocationOperation invocation,
+            PlaceholderInfo placeholder)
+        {
+            switch (placeholder.Operand)
+            {
+                case PlaceholderOperand.Byte:
+                case PlaceholderOperand.Int32:
+                case PlaceholderOperand.Int64:
+                case PlaceholderOperand.Single:
+                case PlaceholderOperand.Double:
+                case PlaceholderOperand.String:
+                case PlaceholderOperand.Branch:
+                    if (invocation.Arguments.Length is 0)
+                    {
+                        return;
+                    }
+
+                    var argument = invocation.Arguments[0];
+
+                    if (!argument.Value.ConstantValue.HasValue)
+                    {
+                        context.ReportDiagnostic(
+                            PlaceholderAnalyzer.NonConstantOperandRule,
+                            argument.Value,
+                            invocation.TargetMethod.Name);
+                    }
+                    else
+                    {
+                        AnalyzeConstantValue(
+                            context,
+                            argument.Value,
+                            invocation.TargetMethod,
+                            placeholder.Code,
+                            placeholder.Operand);
+                    }
+                    break;
+                case PlaceholderOperand.Branches:
+                    var arguments = invocation.Arguments;
+
+                    for (int i = 0; i < arguments.Length; i++)
+                    {
+                        AnalyzeArrayItems(
+                            context,
+                            arguments[i].Value,
+                            invocation.TargetMethod,
+                            static value => value.ConstantValue.HasValue,
+                            value => AnalyzeConstantString(context, value, invocation.TargetMethod, allowEmpty: false));
+                    }
+                    break;
+                case PlaceholderOperand.TypeRef:
+                    AnalyzeConstantParameters(context, invocation);
+                    break;
+            }
+        }
+
+        private void AnalyzeConstantParameters(OperationAnalysisContext context, IInvocationOperation invocation)
+        {
+            var arguments = invocation.Arguments;
+
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                var argument = arguments[i];
+                var parameterType = argument.Parameter?.Type;
+
+                if (parameterType?.SpecialType is SpecialType.System_String)
+                {
+                    if (!argument.Value.ConstantValue.HasValue)
+                    {
+                        context.ReportDiagnostic(
+                            PlaceholderAnalyzer.NonConstantOperandRule,
+                            argument.Value,
+                            invocation.TargetMethod.Name);
+                    }
+                    else
+                    {
+                        AnalyzeConstantString(context, argument.Value, invocation.TargetMethod, allowEmpty: false);
+                    }
+                }
+                else if (parameterType is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_String })
+                {
+                    AnalyzeArrayItems(
+                        context,
+                        argument.Value,
+                        invocation.TargetMethod,
+                        static value => value.ConstantValue.HasValue,
+                        value => AnalyzeConstantString(context, value, invocation.TargetMethod, allowEmpty: false));
+                }
+                else if (SymbolEqualityComparer.Default.Equals(parameterType, SystemType))
+                {
+                    if (!argument.Value.IsTypeOf())
+                    {
+                        context.ReportDiagnostic(
+                            PlaceholderAnalyzer.NonConstantOperandRule,
+                            argument.Value,
+                            invocation.TargetMethod.Name);
+                    }
+                }
+                else if (parameterType is IArrayTypeSymbol arrayType
+                    && SymbolEqualityComparer.Default.Equals(arrayType.ElementType, SystemType))
+                {
+                    AnalyzeArrayItems(
+                        context,
+                        argument.Value,
+                        invocation.TargetMethod,
+                        value => value.IsTypeOf() || value.IsTypeEmptyTypes(SystemType));
+                }
+            }
+        }
 
         private void AnalyzeReference(OperationAnalysisContext context, IOperation operation)
         {
-            IOperation root = operation;
-            while (root.Parent is IConversionOperation conversion)
-            {
-                root = conversion;
-            }
+            IOperation root = operation.GetOutermostConversion();
 
             if (root.Parent is IInvocationOperation invocation
                 && root == invocation.Instance
@@ -263,10 +532,7 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
                 return;
             }
 
-            context.ReportDiagnostic(
-                Diagnostic.Create(
-                    PlaceholderAnalyzer.ReferenceEscapeRule,
-                    operation.Syntax.GetLocation()));
+            context.ReportDiagnostic(PlaceholderAnalyzer.ReferenceEscapeRule, operation);
         }
 
         private void SearchDirectPlaceholders(ITypeSymbol type, HashSet<ITypeSymbol> placeholders)
@@ -309,5 +575,7 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
                     break;
             }
         }
+
+        #endregion
     }
 }

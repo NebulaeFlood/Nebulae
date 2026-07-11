@@ -1,3 +1,4 @@
+using Nebulae.Runtime.Emit.Inline;
 using System;
 using System.Reflection.Emit;
 
