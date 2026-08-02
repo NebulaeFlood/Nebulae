@@ -6,14 +6,14 @@ namespace Tests.Runtime.Emit.Inline.Behavior;
 public sealed class BranchingBehaviorTests
 {
     [TestMethod]
-    public void BooleanInputSelectsExpectedValue()
+    public void BooleanInput_SelectsExpectedValue()
     {
         Assert.AreEqual(10, SelectValue(true));
         Assert.AreEqual(20, SelectValue(false));
     }
 
     [TestMethod]
-    public void PositiveRangeIsSummed()
+    public void PositiveRange_IsSummed()
     {
         Assert.AreEqual(0, SumTo(0));
         Assert.AreEqual(1, SumTo(1));
@@ -21,7 +21,7 @@ public sealed class BranchingBehaviorTests
     }
 
     [TestMethod]
-    public void KnownAndUnknownCasesAreSelected()
+    public void SwitchValue_SelectsKnownOrDefaultCase()
     {
         Assert.AreEqual(100, SelectCase(0));
         Assert.AreEqual(200, SelectCase(1));

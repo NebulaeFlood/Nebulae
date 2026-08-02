@@ -1,0 +1,14 @@
+<Project>
+
+	<PropertyGroup>
+		<IntermediateOutputPath>unused\</IntermediateOutputPath>
+		<TargetFileName>missing.dll</TargetFileName>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Nebulae.Runtime.Emit.Inline" Version="1.0.0" />
+	</ItemGroup>
+
+	<Import Project="$(InlineTargetsPath)" />
+
+</Project>

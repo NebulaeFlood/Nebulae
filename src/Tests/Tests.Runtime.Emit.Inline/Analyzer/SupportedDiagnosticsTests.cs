@@ -6,22 +6,24 @@ namespace Tests.Runtime.Emit.Inline.Analyzer;
 [TestClass]
 public sealed class SupportedDiagnosticsTests
 {
+    private static readonly string[] ExpectedDiagnosticIds =
+    [
+        "NEBIL001",
+        "NEBIL002",
+        "NEBIL003",
+        "NEBIL004",
+        "NEBIL005",
+        "NEBIL006",
+        "NEBIL007",
+    ];
+
     [TestMethod]
-    public void EveryRuleIsExposedOnceWithTheExpectedMetadata()
+    public void SupportedDiagnostics_ExposeEveryRuleOnceWithExpectedMetadata()
     {
         DiagnosticDescriptor[] descriptors = [.. new PlaceholderAnalyzer().SupportedDiagnostics];
 
         CollectionAssert.AreEqual(
-            new[]
-            {
-                "NEBIL001",
-                "NEBIL002",
-                "NEBIL003",
-                "NEBIL004",
-                "NEBIL005",
-                "NEBIL006",
-                "NEBIL007"
-            },
+            ExpectedDiagnosticIds,
             descriptors.Select(static descriptor => descriptor.Id).ToArray());
 
         Assert.IsTrue(descriptors.All(static descriptor => descriptor.Category == "Usage"));

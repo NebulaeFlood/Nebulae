@@ -9,26 +9,47 @@ namespace Tests.Runtime.Emit.Inline.GeneratedIL;
 public sealed class GenericGeneratedILTests
 {
     [TestMethod]
-    public void GenericMethodCallUsesConstructedMethodReference()
+    public void GenericMethodCall_UsesConstructedMethodReference()
     {
-        IReadOnlyList<Instruction> instructions = CecilAssertHelpers.GetInstructions(
+        CecilAssertHelpers.InspectInstructions(
             typeof(GenericBehaviorTests).FullName!,
-            "CallGenericIdentity");
+            "CallGenericIdentity",
+            static instructions =>
+            {
+                Instruction[] calls = [.. instructions
+                    .Where(static instruction => instruction.OpCode.Code == Code.Call)];
 
-        Assert.IsTrue(instructions.Any(static instruction =>
-            instruction.OpCode.Code is Code.Call or Code.Callvirt
-            && instruction.Operand is GenericInstanceMethod));
+                Assert.HasCount(1, calls);
+                var method = (GenericInstanceMethod)calls[0].Operand;
+
+                Assert.AreEqual("Identity", method.Name);
+                Assert.AreEqual("Tests.Runtime.Emit.Inline.Behavior.GenericBehaviorTests/GenericMethodTarget", method.DeclaringType.FullName);
+                Assert.HasCount(1, method.GenericArguments);
+                Assert.AreEqual(typeof(int).FullName, method.GenericArguments[0].FullName);
+                Assert.HasCount(1, method.Parameters);
+            });
     }
 
     [TestMethod]
-    public void ConstructedGenericMemberCallUsesConstructedDeclaringType()
+    public void ConstructedGenericMemberCall_UsesConstructedDeclaringType()
     {
-        IReadOnlyList<Instruction> instructions = CecilAssertHelpers.GetInstructions(
+        CecilAssertHelpers.InspectInstructions(
             typeof(GenericBehaviorTests).FullName!,
-            "CallConstructedGenericMember");
+            "CallConstructedGenericMember",
+            static instructions =>
+            {
+                Instruction[] calls = [.. instructions
+                    .Where(static instruction => instruction.OpCode.Code == Code.Call)];
 
-        Assert.IsTrue(instructions.Any(static instruction =>
-            instruction.OpCode.Code is Code.Call or Code.Callvirt
-            && instruction.Operand is MethodReference { DeclaringType: GenericInstanceType }));
+                Assert.HasCount(1, calls);
+                var method = (MethodReference)calls[0].Operand;
+                var declaringType = (GenericInstanceType)method.DeclaringType;
+
+                Assert.AreEqual("Echo", method.Name);
+                Assert.AreEqual("Tests.Runtime.Emit.Inline.Behavior.GenericBehaviorTests/GenericBox`1", declaringType.ElementType.FullName);
+                Assert.HasCount(1, declaringType.GenericArguments);
+                Assert.AreEqual(typeof(int).FullName, declaringType.GenericArguments[0].FullName);
+                Assert.HasCount(1, method.Parameters);
+            });
     }
 }

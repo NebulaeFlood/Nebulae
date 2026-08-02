@@ -7,13 +7,13 @@ namespace Tests.Runtime.Emit.Inline.GeneratedIL;
 public sealed class RewriteCompletionTests
 {
     [TestMethod]
-    public void RewrittenAssemblyContainsNoPlaceholderCalls()
+    public void RewrittenAssembly_ContainsNoPlaceholderCalls()
     {
         CecilAssertHelpers.AssertNoPlaceholderCalls();
     }
 
     [TestMethod]
-    public void RewrittenAssemblyContainsNoPlaceholderAssemblyReference()
+    public void RewrittenAssembly_ContainsNoPlaceholderAssemblyReference()
     {
         CecilAssertHelpers.AssertNoPlaceholderAssemblyReference();
     }

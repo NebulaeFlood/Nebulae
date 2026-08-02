@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 using Nebulae.Runtime.Emit.Inline.Analyzers;
 using System.Collections.Immutable;
+using System.Globalization;
 
 namespace Tests.Runtime.Emit.Inline.Helpers;
 
@@ -19,25 +20,28 @@ internal static class AnalyzerTestHelpers
         return new AnalyzerDiagnosticExpectation(id, sourceSnippet, sourceOccurrence);
     }
 
-    private static async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source)
+    private static async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(
+        IReadOnlyList<AnalyzerTestSource> sources,
+        bool includeInlineAssembly)
     {
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(sources);
 
-        SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(
-            source,
-            new CSharpParseOptions(LanguageVersion.Latest));
+        SyntaxTree[] syntaxTrees = [.. sources
+            .Select(static source => CSharpSyntaxTree.ParseText(
+                source.Text,
+                new CSharpParseOptions(LanguageVersion.Latest),
+                source.Path))];
 
         CSharpCompilation compilation = CSharpCompilation.Create(
             assemblyName: "AnalyzerTestAssembly",
-            syntaxTrees: [syntaxTree],
-            references: GetMetadataReferences(),
+            syntaxTrees: syntaxTrees,
+            references: GetMetadataReferences(includeInlineAssembly),
             options: new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
 
-        Diagnostic[] compilationErrors = compilation.GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ToArray();
+        Diagnostic[] compilationErrors = [.. compilation.GetDiagnostics()
+            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)];
 
         if (compilationErrors.Length != 0)
         {
@@ -53,9 +57,20 @@ internal static class AnalyzerTestHelpers
         string source,
         params AnalyzerDiagnosticExpectation[] expectations)
     {
+        return await VerifyDiagnosticsAsync(
+            [new AnalyzerTestSource(source, "AnalyzerTest0.cs")],
+            includeInlineAssembly: true,
+            expectations);
+    }
+
+    public static async Task<ImmutableArray<Diagnostic>> VerifyDiagnosticsAsync(
+        IReadOnlyList<AnalyzerTestSource> sources,
+        bool includeInlineAssembly,
+        params AnalyzerDiagnosticExpectation[] expectations)
+    {
         ArgumentNullException.ThrowIfNull(expectations);
 
-        ImmutableArray<Diagnostic> diagnostics = await GetDiagnosticsAsync(source);
+        ImmutableArray<Diagnostic> diagnostics = await GetDiagnosticsAsync(sources, includeInlineAssembly);
         List<Diagnostic> unmatchedDiagnostics = [.. diagnostics];
         Assert.HasCount(
             expectations.Length,
@@ -64,9 +79,17 @@ internal static class AnalyzerTestHelpers
 
         foreach (AnalyzerDiagnosticExpectation expectation in expectations)
         {
-            Diagnostic diagnostic = FindAndRemoveDiagnostic(source, unmatchedDiagnostics, expectation);
+            Diagnostic diagnostic = FindAndRemoveDiagnostic(sources, unmatchedDiagnostics, expectation);
 
             Assert.AreEqual(expectation.Severity, diagnostic.Severity, $"Unexpected severity for {expectation.Id}.");
+
+            if (expectation.Message is not null)
+            {
+                Assert.AreEqual(
+                    expectation.Message,
+                    diagnostic.GetMessage(CultureInfo.InvariantCulture),
+                    $"Unexpected message for {expectation.Id}.");
+            }
 
             Assert.HasCount(
                 expectation.AdditionalLocations.Length,
@@ -77,7 +100,7 @@ internal static class AnalyzerTestHelpers
             {
                 AnalyzerDiagnosticLocationExpectation location = expectation.AdditionalLocations[i];
                 Assert.AreEqual(
-                    FindSourceSpan(source, location.SourceSnippet, location.SourceOccurrence),
+                    FindSourceSpan(GetExpectationSource(sources, expectation).Text, location.SourceSnippet, location.SourceOccurrence),
                     diagnostic.AdditionalLocations[i].SourceSpan,
                     $"Unexpected additional location {i} for {expectation.Id}.");
             }
@@ -92,17 +115,26 @@ internal static class AnalyzerTestHelpers
         return VerifyDiagnosticsAsync(source);
     }
 
+    public static Task<ImmutableArray<Diagnostic>> VerifyNoDiagnosticsAsync(
+        IReadOnlyList<AnalyzerTestSource> sources,
+        bool includeInlineAssembly = true)
+    {
+        return VerifyDiagnosticsAsync(sources, includeInlineAssembly);
+    }
+
     private static Diagnostic FindAndRemoveDiagnostic(
-        string source,
+        IReadOnlyList<AnalyzerTestSource> sources,
         List<Diagnostic> diagnostics,
         AnalyzerDiagnosticExpectation expectation)
     {
+        AnalyzerTestSource source = GetExpectationSource(sources, expectation);
         TextSpan? expectedSpan = expectation.SourceSnippet is null
             ? null
-            : FindSourceSpan(source, expectation.SourceSnippet, expectation.SourceOccurrence);
+            : FindSourceSpan(source.Text, expectation.SourceSnippet, expectation.SourceOccurrence);
 
         int index = diagnostics.FindIndex(diagnostic =>
             diagnostic.Id == expectation.Id
+            && (expectation.SourcePath is null || diagnostic.Location.SourceTree?.FilePath == expectation.SourcePath)
             && (expectedSpan is null || diagnostic.Location.SourceSpan == expectedSpan.Value));
 
         if (index < 0)
@@ -118,12 +150,27 @@ internal static class AnalyzerTestHelpers
         return result;
     }
 
+    private static AnalyzerTestSource GetExpectationSource(
+        IReadOnlyList<AnalyzerTestSource> sources,
+        AnalyzerDiagnosticExpectation expectation)
+    {
+        if (expectation.SourcePath is null)
+        {
+            if (sources.Count != 1)
+            {
+                throw new AssertFailedException("Analyzer expectations for multiple sources must specify SourcePath.");
+            }
+
+            return sources[0];
+        }
+
+        return sources.SingleOrDefault(source => source.Path == expectation.SourcePath)
+            ?? throw new AssertFailedException($"Analyzer source '{expectation.SourcePath}' was not supplied.");
+    }
+
     private static TextSpan FindSourceSpan(string source, string snippet, int occurrence)
     {
-        if (occurrence < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(occurrence));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(occurrence);
 
         int start = -1;
 
@@ -145,7 +192,7 @@ internal static class AnalyzerTestHelpers
         return string.Join(Environment.NewLine, diagnostics.Select(static diagnostic => diagnostic.ToString()));
     }
 
-    private static IEnumerable<MetadataReference> GetMetadataReferences()
+    private static IEnumerable<MetadataReference> GetMetadataReferences(bool includeInlineAssembly)
     {
         string? trustedPlatformAssemblies = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string;
 
@@ -157,6 +204,11 @@ internal static class AnalyzerTestHelpers
         foreach (string path in trustedPlatformAssemblies.Split(Path.PathSeparator))
         {
             yield return MetadataReference.CreateFromFile(path);
+        }
+
+        if (!includeInlineAssembly)
+        {
+            yield break;
         }
 
         string inlineAssemblyPath = Path.Combine(AppContext.BaseDirectory, InlineAssemblyFileName);

@@ -1,4 +1,5 @@
 using Mono.Cecil.Cil;
+using Mono.Cecil;
 using Nebulae.Runtime.Emit.Inline;
 using Tests.Runtime.Emit.Inline.Helpers;
 
@@ -8,25 +9,28 @@ namespace Tests.Runtime.Emit.Inline.GeneratedIL;
 public sealed class PrefixGeneratedILTests
 {
     [TestMethod]
-    public void PrefixIsImmediatelyFollowedBySupportedOperation()
+    public void Prefix_IsImmediatelyFollowedBySupportedOperation()
     {
-        IReadOnlyList<Instruction> instructions = CecilAssertHelpers.GetInstructions(
+        CecilAssertHelpers.InspectInstructions(
             typeof(PrefixGeneratedILTests).FullName!,
-            nameof(ReadVolatileValue));
-
-        int prefixIndex = -1;
-        for (int index = 0; index < instructions.Count; index++)
-        {
-            if (instructions[index].OpCode.Code == Code.Volatile)
+            nameof(ReadVolatileValue),
+            static instructions =>
             {
-                prefixIndex = index;
-                break;
-            }
-        }
+                int[] prefixIndexes = [.. instructions
+                    .Select(static (instruction, index) => (instruction, index))
+                    .Where(static item => item.instruction.OpCode.Code == Code.Volatile)
+                    .Select(static item => item.index)];
 
-        Assert.AreNotEqual(-1, prefixIndex, "Expected a volatile prefix in the rewritten method.");
-        Assert.AreNotEqual(instructions.Count, prefixIndex + 1, "The prefix must be followed by an instruction.");
-        Assert.AreEqual(Code.Ldsfld, instructions[prefixIndex + 1].OpCode.Code);
+                Assert.HasCount(1, prefixIndexes, "Expected exactly one volatile prefix in the rewritten method.");
+                int prefixIndex = prefixIndexes[0];
+                Assert.IsLessThan(instructions.Count, prefixIndex + 1, "The prefix must be followed by an instruction.");
+
+                Instruction fieldLoad = instructions[prefixIndex + 1];
+                Assert.AreEqual(Code.Ldsfld, fieldLoad.OpCode.Code);
+                var field = (FieldReference)fieldLoad.Operand;
+                Assert.AreEqual(nameof(PrefixTarget.Value), field.Name);
+                Assert.AreEqual("Tests.Runtime.Emit.Inline.GeneratedIL.PrefixGeneratedILTests/PrefixTarget", field.DeclaringType.FullName);
+            });
     }
 
     private static int ReadVolatileValue()

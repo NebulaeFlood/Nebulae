@@ -359,8 +359,8 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
 
             public LabelMap()
             {
-                Sources = new();
-                Handlers = new();
+                Sources = [];
+                Handlers = [];
             }
         }
     }

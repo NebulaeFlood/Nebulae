@@ -6,7 +6,7 @@ namespace Tests.Runtime.Emit.Inline.Behavior;
 public sealed class ArrayAndManagedMemoryBehaviorTests
 {
     [TestMethod]
-    public void IntegerArrayElementsCanBeReadAndWritten()
+    public void IntegerArrayElement_CanBeReadAndWritten()
     {
         int[] values = [10, 20, 30];
 
@@ -16,7 +16,7 @@ public sealed class ArrayAndManagedMemoryBehaviorTests
     }
 
     [TestMethod]
-    public void ReferenceArrayElementsCanBeReadAndWritten()
+    public void ReferenceArrayElement_CanBeReadAndWritten()
     {
         string[] values = ["first", "second"];
 
@@ -26,7 +26,7 @@ public sealed class ArrayAndManagedMemoryBehaviorTests
     }
 
     [TestMethod]
-    public void RefParametersCanBeReadAndWritten()
+    public void RefParameter_CanBeReadAndWritten()
     {
         int value = 43;
 
@@ -36,7 +36,7 @@ public sealed class ArrayAndManagedMemoryBehaviorTests
     }
 
     [TestMethod]
-    public void OutParametersReceiveValues()
+    public void OutParameter_ReceivesValue()
     {
         WriteOutValue(out int value);
 
@@ -44,7 +44,7 @@ public sealed class ArrayAndManagedMemoryBehaviorTests
     }
 
     [TestMethod]
-    public void ArrayElementAddressesCanBeReadAndWritten()
+    public void ArrayElementAddress_CanBeReadAndWritten()
     {
         int[] values = [59];
 

@@ -6,7 +6,7 @@ namespace Tests.Runtime.Emit.Inline.Analyzer;
 public sealed class NEBIL004AnalyzerTests
 {
     [TestMethod]
-    public async Task CompileTimeConstantExpressionsProduceNoDiagnostics()
+    public async Task CompileTimeConstantOperand_ProducesNoDiagnostics()
     {
         const string source = """
             using System;
@@ -33,7 +33,7 @@ public sealed class NEBIL004AnalyzerTests
     }
 
     [TestMethod]
-    public async Task RuntimeValueProducesNonConstantOperandDiagnostic()
+    public async Task RuntimeValueOperand_ReportsNonConstantOperandDiagnostic()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -53,7 +53,7 @@ public sealed class NEBIL004AnalyzerTests
     }
 
     [TestMethod]
-    public async Task SwitchRequiresConstantLabels()
+    public async Task Switch_WithRuntimeLabels_ReportsNonConstantOperandDiagnostic()
     {
         const string source = """
             using System;
@@ -82,7 +82,7 @@ public sealed class NEBIL004AnalyzerTests
     }
 
     [TestMethod]
-    public async Task DirectTypeOfOperandsProduceNoDiagnostics()
+    public async Task DirectTypeOfOperand_ProducesNoDiagnostics()
     {
         const string source = """
             using System;
@@ -109,9 +109,19 @@ public sealed class NEBIL004AnalyzerTests
     }
 
     [TestMethod]
-    public async Task RuntimeTypeOperationsProduceNonConstantOperandDiagnostics()
+    [DataRow("IL.Emit.Newarr(type);", "type", 1, "Newarr")]
+    [DataRow("IL.Emit.Box(typeof(int).MakeByRefType());", "typeof(int).MakeByRefType()", 0, "Box")]
+    [DataRow("IL.Emit.Call(IL.Ref(typeof(Tuple<,>).MakeGenericType(typeof(int), typeof(string))).Method(\"Target\"));", "typeof(Tuple<,>).MakeGenericType(typeof(int), typeof(string))", 0, "Ref")]
+    [DataRow("IL.Emit.Call(IL.Ref(Type.GetType(\"System.String\")!).Method(\"Target\"));", "Type.GetType(\"System.String\")", 0, "Ref")]
+    [DataRow("IL.Emit.Call(IL.Ref(typeof(string).GetMember(nameof(string.Length))[0].DeclaringType!).Method(\"Target\"));", "typeof(string).GetMember(nameof(string.Length))[0].DeclaringType", 0, "Ref")]
+    [DataRow("IL.Emit.Call(IL.Ref(typeof(Example)).Method(\"Use\", new[] { typeof(int), type }));", "type", 3, "Method")]
+    public async Task RuntimeTypeOperation_ReportsNonConstantOperandDiagnostic(
+        string statement,
+        string sourceSnippet,
+        int sourceOccurrence,
+        string memberName)
     {
-        const string source = """
+        string source = $$"""
             using System;
             using Nebulae.Runtime.Emit.Inline;
 
@@ -119,28 +129,21 @@ public sealed class NEBIL004AnalyzerTests
             {
                 public static void Use(Type type)
                 {
-                    IL.Emit.Newarr(type);
-                    IL.Emit.Box(typeof(int).MakeByRefType());
-                    IL.Emit.Call(IL.Ref(typeof(Tuple<,>).MakeGenericType(typeof(int), typeof(string))).Method("Target"));
-                    IL.Emit.Call(IL.Ref(Type.GetType("System.String")!).Method("Target"));
-                    IL.Emit.Call(IL.Ref(typeof(string).GetMember(nameof(string.Length))[0].DeclaringType!).Method("Target"));
-                    IL.Emit.Call(IL.Ref(typeof(Example)).Method("Use", new[] { typeof(int), type }));
+                    {{statement}}
                 }
             }
             """;
 
         await AnalyzerTestHelpers.VerifyDiagnosticsAsync(
             source,
-            AnalyzerTestHelpers.Diagnostic("NEBIL004"),
-            AnalyzerTestHelpers.Diagnostic("NEBIL004"),
-            AnalyzerTestHelpers.Diagnostic("NEBIL004"),
-            AnalyzerTestHelpers.Diagnostic("NEBIL004"),
-            AnalyzerTestHelpers.Diagnostic("NEBIL004"),
-            AnalyzerTestHelpers.Diagnostic("NEBIL004"));
+            AnalyzerTestHelpers.Diagnostic("NEBIL004", sourceSnippet, sourceOccurrence) with
+            {
+                Message = $"Operand for inline IL placeholder member '{memberName}' must be a compile-time constant",
+            });
     }
 
     [TestMethod]
-    public async Task RuntimeMemberNamesProduceNonConstantOperandDiagnostics()
+    public async Task RuntimeMemberName_ReportsNonConstantOperandDiagnostics()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;

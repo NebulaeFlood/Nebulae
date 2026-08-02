@@ -6,7 +6,7 @@ namespace Tests.Runtime.Emit.Inline.Analyzer;
 public sealed class NEBIL001AnalyzerTests
 {
     [TestMethod]
-    public async Task ReturningAReferencePlaceholderProducesReferenceEscapeDiagnostic()
+    public async Task ReturningReferencePlaceholder_ReportsReferenceEscapeDiagnostic()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -23,7 +23,7 @@ public sealed class NEBIL001AnalyzerTests
     }
 
     [TestMethod]
-    public async Task PassingAReferencePlaceholderToOrdinaryCodeProducesReferenceEscapeDiagnostic()
+    public async Task PassingReferencePlaceholderToOrdinaryCode_ReportsReferenceEscapeDiagnostic()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -45,7 +45,7 @@ public sealed class NEBIL001AnalyzerTests
     }
 
     [TestMethod]
-    public async Task DirectReferenceChainsProduceNoDiagnostics()
+    public async Task DirectReferenceChain_ProducesNoDiagnostics()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -68,7 +68,7 @@ public sealed class NEBIL001AnalyzerTests
     }
 
     [TestMethod]
-    public async Task MemberReferencesProduceNoDiagnosticsWhenConsumedDirectly()
+    public async Task MemberReference_WhenConsumedDirectly_ProducesNoDiagnostics()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -91,7 +91,7 @@ public sealed class NEBIL001AnalyzerTests
     }
 
     [TestMethod]
-    public async Task GenericReferencesProduceNoDiagnosticsWhenConsumedDirectly()
+    public async Task GenericReference_WhenConsumedDirectly_ProducesNoDiagnostics()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;

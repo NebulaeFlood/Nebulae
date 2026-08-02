@@ -11,13 +11,12 @@ internal static class CecilAssertHelpers
     {
         using AssemblyDefinition assembly = AssemblyHelpers.ReadCurrentTestAssembly();
 
-        string[] calls = GetTypes(assembly.MainModule)
+        string[] calls = [.. GetTypes(assembly.MainModule)
             .SelectMany(static type => type.Methods)
             .Where(static method => method.HasBody)
             .SelectMany(static method => method.Body.Instructions.Select(instruction => (method, instruction)))
             .Where(static item => item.instruction.Operand is MethodReference method && IsPlaceholderAssemblyReference(method.DeclaringType.Scope))
-            .Select(static item => $"{item.method.FullName}: {item.instruction}")
-            .ToArray();
+            .Select(static item => $"{item.method.FullName}: {item.instruction}")];
 
         if (calls.Length != 0)
         {
@@ -38,41 +37,35 @@ internal static class CecilAssertHelpers
         }
     }
 
-    public static TypeDefinition GetTypeDefinition(string fullName)
+    public static void InspectInstructions(
+        string typeFullName,
+        string methodName,
+        Action<IReadOnlyList<Instruction>> assertion)
     {
-        AssemblyDefinition assembly = AssemblyHelpers.ReadCurrentTestAssembly();
+        ArgumentNullException.ThrowIfNull(assertion);
 
-        TypeDefinition? type = GetTypes(assembly.MainModule)
-            .FirstOrDefault(type => type.FullName == fullName);
+        using AssemblyDefinition assembly = AssemblyHelpers.ReadCurrentTestAssembly();
 
-        return type ?? throw new AssertFailedException($"Type '{fullName}' was not found in the test assembly.");
-    }
+        TypeDefinition type = GetTypes(assembly.MainModule)
+            .FirstOrDefault(type => type.FullName == typeFullName)
+            ?? throw new AssertFailedException($"Type '{typeFullName}' was not found in the test assembly.");
 
-    public static MethodDefinition GetMethodDefinition(string typeFullName, string methodName)
-    {
-        TypeDefinition type = GetTypeDefinition(typeFullName);
-        MethodDefinition[] methods = type.Methods
-            .Where(method => method.Name == methodName)
-            .ToArray();
+        MethodDefinition[] methods = [.. type.Methods
+            .Where(method => method.Name == methodName)];
 
-        return methods.Length switch
+        MethodDefinition method = methods.Length switch
         {
             1 => methods[0],
             0 => throw new AssertFailedException($"Method '{typeFullName}.{methodName}' was not found in the test assembly."),
             _ => throw new AssertFailedException($"Method name '{typeFullName}.{methodName}' is ambiguous in the test assembly."),
         };
-    }
-
-    public static IReadOnlyList<Instruction> GetInstructions(string typeFullName, string methodName)
-    {
-        MethodDefinition method = GetMethodDefinition(typeFullName, methodName);
 
         if (!method.HasBody)
         {
             throw new AssertFailedException($"Method '{typeFullName}.{methodName}' does not have a method body.");
         }
 
-        return method.Body.Instructions.ToArray();
+        assertion([.. method.Body.Instructions]);
     }
 
     private static IEnumerable<TypeDefinition> GetTypes(ModuleDefinition module)

@@ -6,19 +6,19 @@ namespace Tests.Runtime.Emit.Inline.Behavior;
 public sealed class UnsafeBehaviorTests
 {
     [TestMethod]
-    public void StaticFunctionPointersCanBeInvoked()
+    public void StaticFunctionPointer_CanBeInvoked()
     {
         Assert.AreEqual(79, InvokeStaticFunctionPointer());
     }
 
     [TestMethod]
-    public void VirtualFunctionPointersDispatchToOverrides()
+    public void VirtualFunctionPointer_DispatchesToOverride()
     {
         Assert.AreEqual(83, InvokeVirtualFunctionPointer(new OverrideTarget()));
     }
 
     [TestMethod]
-    public unsafe void FixedArrayElementsCanBeReadThroughPointers()
+    public unsafe void FixedArrayElement_ThroughPointer_CanBeRead()
     {
         int[] values = [89, 97];
 
@@ -29,7 +29,7 @@ public sealed class UnsafeBehaviorTests
     }
 
     [TestMethod]
-    public unsafe void FixedArrayElementsCanBeWrittenThroughPointers()
+    public unsafe void FixedArrayElement_ThroughPointer_CanBeWritten()
     {
         int[] values = [101, 103];
 
@@ -42,7 +42,7 @@ public sealed class UnsafeBehaviorTests
     }
 
     [TestMethod]
-    public void TypedReferenceTypeCanBeRead()
+    public void TypedReferenceType_CanBeRead()
     {
         int value = 109;
 

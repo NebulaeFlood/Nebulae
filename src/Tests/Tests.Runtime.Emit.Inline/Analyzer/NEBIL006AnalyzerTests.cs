@@ -6,7 +6,7 @@ namespace Tests.Runtime.Emit.Inline.Analyzer;
 public sealed class NEBIL006AnalyzerTests
 {
     [TestMethod]
-    public async Task DuplicateDefinitionsReportEveryDefinitionAfterTheFirst()
+    public async Task DuplicateLabelDefinition_ReportsEveryDefinitionAfterFirst()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -35,7 +35,7 @@ public sealed class NEBIL006AnalyzerTests
     }
 
     [TestMethod]
-    public async Task SameLabelCanBeDefinedInDifferentMethodsAndLocalFunctions()
+    public async Task SameLabel_InDifferentScopes_ProducesNoDiagnostics()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -65,7 +65,7 @@ public sealed class NEBIL006AnalyzerTests
     }
 
     [TestMethod]
-    public async Task DuplicateDefinitionsInsideLocalFunctionAreReported()
+    public async Task DuplicateLabel_InLocalFunction_ReportsDiagnostic()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -94,7 +94,7 @@ public sealed class NEBIL006AnalyzerTests
     }
 
     [TestMethod]
-    public async Task LabelNamesAreCaseSensitive()
+    public async Task LabelName_WithDifferentCasing_IsDistinct()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;

@@ -6,7 +6,7 @@ namespace Tests.Runtime.Emit.Inline.Analyzer;
 public sealed class NEBIL005AnalyzerTests
 {
     [TestMethod]
-    public async Task LegalOperandValuesProduceNoDiagnostics()
+    public async Task LegalOperandValue_ProducesNoDiagnostics()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -33,9 +33,27 @@ public sealed class NEBIL005AnalyzerTests
     }
 
     [TestMethod]
-    public async Task InvalidOperandValuesProduceInvalidValueDiagnostics()
+    [DataRow("IL.Emit.Unaligned(0);", "0", "Unaligned")]
+    [DataRow("IL.Emit.Unaligned(3);", "3", "Unaligned")]
+    [DataRow("IL.Emit.Unaligned(8);", "8", "Unaligned")]
+    [DataRow("IL.Emit.No(0);", "0", "No")]
+    [DataRow("IL.Emit.No(8);", "8", "No")]
+    [DataRow("IL.Emit.No(255);", "255", "No")]
+    [DataRow("IL.Emit.Ldstr(null!);", "null", "Ldstr")]
+    [DataRow("IL.Label(null!);", "null", "Label")]
+    [DataRow("IL.Label(\"\");", "\"\"", "Label")]
+    [DataRow("IL.Emit.Br(null!);", "null", "Br")]
+    [DataRow("IL.Emit.Br(\"\");", "\"\"", "Br")]
+    [DataRow("IL.Emit.Switch(\"\");", "\"\"", "Switch")]
+    [DataRow("IL.Emit.Switch(null!);", "null", "Switch")]
+    [DataRow("IL.Emit.Call(IL.Ref(typeof(Target)).Method(\"\"));", "\"\"", "Method")]
+    [DataRow("IL.Emit.Call(IL.Ref(typeof(Target)).Method(null!));", "null", "Method")]
+    public async Task InvalidOperandValue_ReportsDiagnostic(
+        string statement,
+        string sourceSnippet,
+        string memberName)
     {
-        const string source = """
+        string source = $$"""
             using Nebulae.Runtime.Emit.Inline;
 
             sealed class Target
@@ -47,27 +65,16 @@ public sealed class NEBIL005AnalyzerTests
             {
                 public static void Use()
                 {
-                    IL.Emit.Unaligned(0);
-                    IL.Emit.Unaligned(3);
-                    IL.Emit.Unaligned(8);
-                    IL.Emit.No(0);
-                    IL.Emit.No(8);
-                    IL.Emit.No(255);
-                    IL.Emit.Ldstr(null!);
-                    IL.Label(null!);
-                    IL.Label("");
-                    IL.Emit.Br(null!);
-                    IL.Emit.Br("");
-                    IL.Emit.Switch("a", "", null!);
-                    IL.Label("a");
-                    IL.Emit.Call(IL.Ref(typeof(Target)).Method(""));
-                    IL.Emit.Call(IL.Ref(typeof(Target)).Method(null!));
+                    {{statement}}
                 }
             }
             """;
 
         await AnalyzerTestHelpers.VerifyDiagnosticsAsync(
             source,
-            Enumerable.Repeat(AnalyzerTestHelpers.Diagnostic("NEBIL005"), 15).ToArray());
+            AnalyzerTestHelpers.Diagnostic("NEBIL005", sourceSnippet) with
+            {
+                Message = $"Operand for inline IL placeholder member '{memberName}' has an invalid value",
+            });
     }
 }

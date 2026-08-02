@@ -31,7 +31,16 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Remove="Fixtures\**\*.cs" />
+		<Compile Remove="BuildScenarios\**\*.cs" />
+		<Compile Remove="BuildScenarioTests.cs" Condition="'$(UsePackagedInlineIL)' == 'true'" />
+		<Compile Remove="Helpers\BuildScenarioTestHelpers.cs" Condition="'$(UsePackagedInlineIL)' == 'true'" />
+		<Compile Remove="Replacement\**\*.cs" Condition="'$(UsePackagedInlineIL)' == 'true'" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AssemblyMetadata Include="InlineILRepositoryRoot" Value="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\..'))" />
+		<AssemblyMetadata Include="InlineILBuildConfiguration" Value="$(Configuration)" />
+		<AssemblyMetadata Include="InlineILTaskTargetFramework" Value="$(_InlineILTaskTargetFramework)" />
 	</ItemGroup>
 
 	<!-- TaskFactory="TaskHostFactory" prevents the task assembly from being locked. -->

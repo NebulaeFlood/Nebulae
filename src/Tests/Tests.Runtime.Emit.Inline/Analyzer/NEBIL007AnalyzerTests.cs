@@ -6,7 +6,7 @@ namespace Tests.Runtime.Emit.Inline.Analyzer;
 public sealed class NEBIL007AnalyzerTests
 {
     [TestMethod]
-    public async Task ForwardBackwardAndSwitchReferencesResolveWithinTheMethod()
+    public async Task ForwardBackwardAndSwitchReference_InSameMethod_Resolves()
     {
         const string source = """
             using System;
@@ -38,7 +38,7 @@ public sealed class NEBIL007AnalyzerTests
     }
 
     [TestMethod]
-    public async Task DefinitionInAnotherMethodDoesNotResolveReference()
+    public async Task LabelDefinition_InAnotherMethod_DoesNotResolveReference()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -56,7 +56,7 @@ public sealed class NEBIL007AnalyzerTests
     }
 
     [TestMethod]
-    public async Task DefinitionsAndReferencesResolveInsideEachOwningMethodOrLocalFunction()
+    public async Task LabelDefinitionAndReference_InOwningScope_Resolve()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -89,7 +89,7 @@ public sealed class NEBIL007AnalyzerTests
     }
 
     [TestMethod]
-    public async Task LocalFunctionAndContainingMethodCannotResolveEachOthersLabels()
+    public async Task Label_InLocalFunctionAndContainingMethod_DoesNotCrossScopes()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -119,7 +119,7 @@ public sealed class NEBIL007AnalyzerTests
     }
 
     [TestMethod]
-    public async Task LabelNamesAreCaseSensitive()
+    public async Task LabelReference_WithDifferentCasing_IsUndefined()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;

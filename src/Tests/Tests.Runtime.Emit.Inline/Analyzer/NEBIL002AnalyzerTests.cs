@@ -6,7 +6,7 @@ namespace Tests.Runtime.Emit.Inline.Analyzer;
 public sealed class NEBIL002AnalyzerTests
 {
     [TestMethod]
-    public async Task ReferenceTypesCannotAppearInMethodSignatures()
+    public async Task ReferenceType_InMethodSignature_ReportsDiagnostic()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -23,7 +23,7 @@ public sealed class NEBIL002AnalyzerTests
     }
 
     [TestMethod]
-    public async Task ReferenceTypesCannotBeStoredInLocalVariables()
+    public async Task ReferenceType_InLocalVariable_ReportsDiagnostic()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -43,7 +43,7 @@ public sealed class NEBIL002AnalyzerTests
     }
 
     [TestMethod]
-    public async Task ReferenceTypesCannotBeNestedInMemberTypes()
+    public async Task ReferenceType_NestedInMemberType_ReportsDiagnostic()
     {
         const string source = """
             using System.Collections.Generic;
@@ -61,7 +61,7 @@ public sealed class NEBIL002AnalyzerTests
     }
 
     [TestMethod]
-    public async Task ReferenceTypesCannotAppearInInheritedInterfaces()
+    public async Task ReferenceType_InInheritedInterface_ReportsDiagnostic()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;
@@ -81,7 +81,7 @@ public sealed class NEBIL002AnalyzerTests
     }
 
     [TestMethod]
-    public async Task ReferenceTypesCannotAppearInGenericConstraints()
+    public async Task ReferenceType_InGenericConstraint_ReportsDiagnostic()
     {
         const string source = """
             using System.Collections.Generic;

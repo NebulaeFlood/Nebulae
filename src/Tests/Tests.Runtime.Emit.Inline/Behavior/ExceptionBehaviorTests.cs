@@ -6,13 +6,13 @@ namespace Tests.Runtime.Emit.Inline.Behavior;
 public sealed class ExceptionBehaviorTests
 {
     [TestMethod]
-    public void ExpectedExceptionsAreHandled()
+    public void ExpectedException_IsHandled()
     {
         Assert.AreEqual(109, CatchExpectedException(new InvalidOperationException()));
     }
 
     [TestMethod]
-    public void FinallyBlocksAlwaysRun()
+    public void FinallyBlock_AlwaysRuns()
     {
         int finallyCount = 0;
 

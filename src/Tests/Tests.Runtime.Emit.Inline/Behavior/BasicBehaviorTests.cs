@@ -6,28 +6,28 @@ namespace Tests.Runtime.Emit.Inline.Behavior;
 public sealed class BasicBehaviorTests
 {
     [TestMethod]
-    public void IntegerConstantsAreReturned()
+    public void IntegerConstants_AreReturned()
     {
         Assert.AreEqual(42, ReturnInt32Constant());
         Assert.AreEqual(9_876_543_210L, ReturnInt64Constant());
     }
 
     [TestMethod]
-    public void FloatingPointConstantsAreReturned()
+    public void FloatingPointConstants_AreReturned()
     {
         Assert.AreEqual(3.25F, ReturnSingleConstant());
         Assert.AreEqual(-12.5D, ReturnDoubleConstant());
     }
 
     [TestMethod]
-    public void ReferenceValuesAreReturned()
+    public void ReferenceValues_AreReturned()
     {
         Assert.AreEqual("inline IL", ReturnStringConstant());
         Assert.IsNull(ReturnNull());
     }
 
     [TestMethod]
-    public void ValuesSurviveIntermediateStackWorkAndParameterPassing()
+    public void Values_AfterStackOperationsAndParameterPassing_ArePreserved()
     {
         Assert.AreEqual(73, PreserveValueAcrossStackOperations());
         Assert.AreEqual(123, ReturnArgument(123));

@@ -6,7 +6,7 @@ namespace Tests.Runtime.Emit.Inline.Analyzer;
 public sealed class NEBIL003AnalyzerTests
 {
     [TestMethod]
-    public async Task PassingAPlaceholderMethodGroupProducesInvalidContextDiagnostic()
+    public async Task PlaceholderMethodGroup_WhenPassedAsValue_ReportsInvalidContextDiagnostic()
     {
         const string source = """
             using System;
@@ -29,7 +29,7 @@ public sealed class NEBIL003AnalyzerTests
     }
 
     [TestMethod]
-    public async Task PlaceholderCallsProduceNoDiagnosticsInMethodBodies()
+    public async Task PlaceholderCall_InMethodBody_ProducesNoDiagnostics()
     {
         const string source = """
             using Nebulae.Runtime.Emit.Inline;

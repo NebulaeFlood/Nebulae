@@ -6,13 +6,13 @@ namespace Tests.Runtime.Emit.Inline.Behavior;
 public sealed class GenericBehaviorTests
 {
     [TestMethod]
-    public void GenericMethodsReturnExpectedValues()
+    public void GenericMethod_ReturnsExpectedValue()
     {
         Assert.AreEqual(37, CallGenericIdentity(37));
     }
 
     [TestMethod]
-    public void ConstructedGenericTypeMembersCanBeCalled()
+    public void ConstructedGenericTypeMember_CanBeCalled()
     {
         var target = new GenericBox<int>(0);
 
@@ -20,7 +20,7 @@ public sealed class GenericBehaviorTests
     }
 
     [TestMethod]
-    public void ConstructedGenericTypeStateCanBeAccessed()
+    public void ConstructedGenericTypeState_CanBeAccessed()
     {
         var target = new GenericBox<string>(string.Empty);
 
@@ -82,13 +82,12 @@ public sealed class GenericBehaviorTests
 
     private sealed class GenericBox<T>(T value)
     {
+        private readonly Func<T, T> _echo = static input => input;
+
         public T Field = value;
 
         public T Value { get; set; } = value;
 
-        public T Echo(T value)
-        {
-            return value;
-        }
+        public T Echo(T value) => _echo(value);
     }
 }

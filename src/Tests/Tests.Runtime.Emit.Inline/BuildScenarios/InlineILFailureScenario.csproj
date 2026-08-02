@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>$(ScenarioTargetFramework)</TargetFramework>
+		<LangVersion>14.0</LangVersion>
+		<Nullable>enable</Nullable>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<DebugType Condition="'$(ScenarioDebugType)' == ''">portable</DebugType>
+		<DebugType Condition="'$(ScenarioDebugType)' != ''">$(ScenarioDebugType)</DebugType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Include="$(ScenarioSource)" />
+		<Reference Include="Nebulae.Runtime.Emit.Inline" HintPath="$(InlineAssemblyPath)" Private="false" />
+	</ItemGroup>
+
+	<UsingTask TaskName="Nebulae.Runtime.Emit.Inline.MSBuild.InlineILTask"
+			   AssemblyFile="$(InlineTaskAssemblyPath)" />
+
+	<Target Name="InlineIL" AfterTargets="CoreCompile">
+		<InlineILTask AssemblyPath="$(IntermediateOutputPath)$(TargetFileName)"
+					  DebugType="$(DebugType)"
+					  References="@(ReferencePath->'%(RootDir)%(Directory)')"
+					  Condition="Exists('$(IntermediateOutputPath)$(TargetFileName)')" />
+	</Target>
+
+</Project>
