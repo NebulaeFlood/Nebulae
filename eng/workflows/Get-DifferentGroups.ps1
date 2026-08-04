@@ -90,6 +90,21 @@ $discovery = $discoveryJson | ConvertFrom-Json
 # 提取所有 group 名称并保持顺序
 $allGroups = @($discovery.groups | ForEach-Object cicd)
 
+# none 项目不会形成可运行分组，但其自身文件应被识别为已知的非 CI/CD 输入
+$disabledProjectPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+$disabledProjectDirectories = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+
+foreach ($disabledProjectPath in @($discovery.disabledProjects)) {
+    $normalizedPath = ConvertTo-RepositoryPath $disabledProjectPath
+    $null = $disabledProjectPaths.Add($normalizedPath)
+
+    $projectDirectory = Split-Path -Parent $normalizedPath
+
+    if (-not [string]::IsNullOrWhiteSpace($projectDirectory)) {
+        $null = $disabledProjectDirectories.Add($projectDirectory.Replace('\', '/').TrimEnd('/') + '/')
+    }
+}
+
 # 如果调用方要求跑全部 group，直接输出并退出
 if ($All) {
     Write-Result $allGroups
@@ -404,8 +419,17 @@ foreach ($change in $changes) {
         }
     }
 
-    # 标记当前变更是否能被某个 group 规则识别
-    $matched = $false
+    # 标记当前变更是否能被某个 group 规则或 none 项目识别
+    $matched = $disabledProjectPaths.Contains($change.path)
+
+    if (-not $matched) {
+        foreach ($directory in $disabledProjectDirectories) {
+            if ($change.path.StartsWith($directory, [StringComparison]::OrdinalIgnoreCase)) {
+                $matched = $true
+                break
+            }
+        }
+    }
 
     foreach ($rule in $rules) {
         # 先检查精确文件输入

@@ -15,14 +15,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# 不参与 CI/CD 的项目
-# 这些项目在仓库中只用于本地实验、临时验证或手动调试
-$excludedProjectPaths = @(
-    'src/Tests/Tests.Demo/Tests.Demo.csproj'
-)
+# 保留的 CICD 值，表示解决方案中的项目不参与 CI/CD
+$disabledCicdValue = 'none'
 
 # 定位仓库根目录
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+$solutionPath = Join-Path $repositoryRoot 'Nebulae.slnx'
 
 # 把绝对路径转换成相对路径
 function Get-RelativePath {
@@ -35,28 +33,40 @@ function Get-RelativePath {
     return [IO.Path]::GetRelativePath($repositoryRoot, $Path).Replace('\', '/')
 }
 
-# 使用 Git 获取已跟踪的 .csproj 文件
-function Get-TrackedProjectFiles {
-    $projectPaths = @(& git -C $repositoryRoot ls-files -- '*.csproj')
-    $gitExitCode = $LASTEXITCODE
-
-    if ($gitExitCode -ne 0) {
-        throw "Failed to list tracked .csproj files with git ls-files. Exit code: $gitExitCode"
+# 从解决方案获取正式的 .csproj 项目
+function Get-SolutionProjectFiles {
+    if (-not (Test-Path -LiteralPath $solutionPath -PathType Leaf)) {
+        throw "Solution file '$solutionPath' does not exist."
     }
 
-    foreach ($relativePath in @($projectPaths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)) {
-        
-        # 把 Windows 风格的 \ 统一转换成 /
-        $normalizedPath = $relativePath.Replace('\', '/')
+    try {
+        [xml] $solution = Get-Content -LiteralPath $solutionPath -Raw
+    }
+    catch {
+        throw "Solution '$solutionPath' is not valid XML: $($_.Exception.Message)"
+    }
 
-        if ($normalizedPath -in $excludedProjectPaths) {
-            continue
+    $projectPaths = @(
+        $solution.SelectNodes("//*[local-name()='Project'][@Path]") |
+            ForEach-Object { ([string] $_.Path).Trim() } |
+            Where-Object { [IO.Path]::GetExtension($_) -ieq '.csproj' } |
+            Sort-Object -Unique
+    )
+
+    foreach ($relativePath in $projectPaths) {
+        if ([IO.Path]::IsPathRooted($relativePath)) {
+            throw "Solution project path '$relativePath' must be relative to the repository root."
         }
 
-        $fullPath = Join-Path $repositoryRoot $relativePath
+        $fullPath = [IO.Path]::GetFullPath((Join-Path $repositoryRoot $relativePath))
+        $normalizedPath = Get-RelativePath $fullPath
+
+        if ($normalizedPath -eq '..' -or $normalizedPath.StartsWith('../', [StringComparison]::Ordinal)) {
+            throw "Solution project path '$relativePath' resolves outside the repository root."
+        }
 
         if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
-            throw "Git lists project file '$relativePath', but it does not exist in the working tree."
+            throw "Solution lists project file '$relativePath', but it does not exist in the working tree."
         }
 
         Get-Item -LiteralPath $fullPath
@@ -110,14 +120,16 @@ function Get-EvaluatedProjectProperties {
     }
 }
 
-# 收集所有已跟踪的项目文件
-$projectFiles = @(Get-TrackedProjectFiles | Sort-Object FullName)
+# 收集解决方案中的正式项目文件
+$projectFiles = @(Get-SolutionProjectFiles | Sort-Object FullName)
 
 if ($projectFiles.Count -eq 0) {
-    throw "No tracked .csproj files were found under '$repositoryRoot'."
+    throw "No .csproj files were found in solution '$solutionPath'."
 }
 
 # 解析项目并归类
+$disabledProjects = [Collections.Generic.List[string]]::new()
+
 $projects = foreach ($projectFile in $projectFiles) {
     try {
         [xml] $document = Get-Content -LiteralPath $projectFile.FullName -Raw
@@ -159,6 +171,12 @@ $projects = foreach ($projectFile in $projectFiles) {
         }
     }
 
+    # none 是保留值；在 MSBuild 求值前跳过，允许解决方案包含仅供本地使用的项目
+    if ($groupName -eq $disabledCicdValue) {
+        $disabledProjects.Add((Get-RelativePath $projectFile.FullName))
+        continue
+    }
+
     # 校验 XML 声明和 MSBuild 求值结果是否一致
     # 防止 Directory.Build.props、Import 或环境变量改变 CICD 分组
     $properties = Get-EvaluatedProjectProperties $projectFile.FullName
@@ -196,6 +214,10 @@ $projects = foreach ($projectFile in $projectFiles) {
 $groupNames = @('default') + @($projects.cicd | Where-Object { $_ -ne 'default' } | Sort-Object -Unique)
 
 # 如果指定了 -CICD，则验证分组是否存在
+if ($CICD -eq $disabledCicdValue) {
+    throw "CICD value '$disabledCicdValue' is reserved for projects that do not participate in CI/CD and cannot be selected as a group."
+}
+
 if ($CICD -and $CICD -notin $groupNames) {
     throw "Unknown CICD group '$CICD'. Available groups: $($groupNames -join ', ')"
 }
@@ -225,7 +247,10 @@ $groups = foreach ($groupName in $selectedGroupNames) {
 
 # 序列化结果
 # -Json 模式下使用压缩 JSON
-$result = [pscustomobject][ordered]@{ groups = @($groups) }
+$result = [pscustomobject][ordered]@{
+    groups           = @($groups)
+    disabledProjects = @($disabledProjects)
+}
 $serialized = $result | ConvertTo-Json -Depth 5 -Compress:$Json
 
 # 写入可选的输出路径
