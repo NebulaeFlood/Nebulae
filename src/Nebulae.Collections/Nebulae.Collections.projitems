@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
@@ -9,8 +9,13 @@
     <Import_RootNamespace>Nebulae.Collections</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ArrayStorageBase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CollectionDebugView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CollectionHelpers.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Collector.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Concurrent\ConcurrentHashSet.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Concurrent\VolatileWrapper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HashHelpers.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LinkedStorageBase.cs" />
   </ItemGroup>
 </Project>

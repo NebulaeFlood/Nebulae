@@ -282,7 +282,9 @@ namespace Nebulae.Diagnostics
 
             if (obj is char c)
             {
-                return builder.Append(char.IsWhiteSpace(c) ? "Char.WhiteSpace" : c.ToString());
+                return char.IsWhiteSpace(c)
+                    ? builder.Append("Char.WhiteSpace")
+                    : builder.Append(c);
             }
 
             str = obj.ToString()!;
@@ -437,6 +439,9 @@ namespace Nebulae.Diagnostics
                 message = builder.Append(']').ToString();
             }
 
+#if RIMWORLD // On my RimWorld mods.
+            Verse.Log.Message($"<color=#3F48CC>[{subject}]</color> {message}");
+#endif
             message = $"[{subject}] {message}";
 
             Console.WriteLine(message);
@@ -539,17 +544,25 @@ namespace Nebulae.Diagnostics
                         .Append(')');
                 case MemberTypes.Event:
                 case MemberTypes.Field:
-                    return builder.FormatDeclaringType(member.DeclaringType).Append(member.Name);
+                    return builder
+                        .FormatDeclaringType(member.DeclaringType)
+                        .Append(member.Name);
                 case MemberTypes.Property:
                     var parameters = ((PropertyInfo)member).GetIndexParameters();
 
                     if (parameters.Length < 1)
                     {
-                        return builder.FormatDeclaringType(member.DeclaringType).Append(member.Name);
+                        return builder
+                            .FormatDeclaringType(member.DeclaringType)
+                            .Append(member.Name);
                     }
                     else
                     {
-                        return builder.FormatDeclaringType(member.DeclaringType).Append("this[").FormatParameters(parameters).Append(']');
+                        return builder
+                            .FormatDeclaringType(member.DeclaringType)
+                            .Append("this[")
+                            .FormatParameters(parameters)
+                            .Append(']');
                     }
                 case MemberTypes.Method:
                     return builder.FormatMethod((MethodInfo)member);
@@ -664,7 +677,9 @@ namespace Nebulae.Diagnostics
 
                         if (underlyingType is not null)
                         {
-                            return FormatType(builder, underlyingType, scoped).Append('?');
+                            return builder
+                                .FormatType(underlyingType, scoped)
+                                .Append('?');
                         }
                     }
 
@@ -675,14 +690,15 @@ namespace Nebulae.Diagnostics
 
                     if (type.IsNested)
                     {
-                        FormatType(builder, type.DeclaringType!, scoped: false).Append('+');
+                        builder
+                            .FormatType(type.DeclaringType!, scoped: false)
+                            .Append('+');
                     }
 
                     builder.Append(type.Name.TrimEnd(GenericTypeNameTrimChars)).Append('<');
 
                     var genericArguments = type.GetGenericArguments();
-
-                    FormatType(builder, genericArguments[0], scoped);
+                    builder.FormatType(genericArguments[0], scoped);
 
                     for (int i = 1; i < genericArguments.Length; i++)
                     {
@@ -702,7 +718,9 @@ namespace Nebulae.Diagnostics
 
                         if (type.IsNested)
                         {
-                            FormatType(builder, type.DeclaringType!, scoped: false).Append('+');
+                            builder
+                                .FormatType(type.DeclaringType!, scoped: false)
+                                .Append('+');
                         }
                     }
 
@@ -711,7 +729,7 @@ namespace Nebulae.Diagnostics
             }
             else
             {
-                FormatType(builder, elementType);
+                builder.FormatType(elementType);
 
                 if (type.IsArray)
                 {
@@ -719,7 +737,10 @@ namespace Nebulae.Diagnostics
 
                     if (rank > 1)
                     {
-                        builder.Append('[').Append(new string(',', rank - 1)).Append(']');
+                        builder
+                            .Append('[')
+                            .Append(new string(',', rank - 1))
+                            .Append(']');
                     }
                     else
                     {
@@ -743,16 +764,16 @@ namespace Nebulae.Diagnostics
 
         private static StringBuilder FormatTypes(this StringBuilder builder, Type[] types)
         {
-            for (int i = 0; i < types.Length; i++)
+            if (types.Length < 1)
             {
-                if (i > 0)
-                {
-                    builder.Append(", ").FormatType(types[i]);
-                }
-                else
-                {
-                    builder.Append(types[i]);
-                }
+                return builder;
+            }
+
+            builder.FormatType(types[0]);
+
+            for (int i = 1; i < types.Length; i++)
+            {
+                builder.Append(", ").FormatType(types[i]);
             }
 
             return builder;

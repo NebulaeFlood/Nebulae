@@ -1,8 +1,8 @@
-namespace System.Runtime.CompilerServices
-{
 #if !NETCOREAPP3_0_OR_GREATER
 #pragma warning disable IDE0290
 
+namespace System.Runtime.CompilerServices
+{
     /// <summary>
     /// 指明参数捕获指定参数传递的表达式作为字符串
     /// </summary>
@@ -24,5 +24,6 @@ namespace System.Runtime.CompilerServices
         /// </summary>
         public string ParameterName { get; }
     }
-#endif
 }
+
+#endif

@@ -1,0 +1,14 @@
+<Project Sdk="MSTest.Sdk/4.0.2">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+		<LangVersion>latest</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\Projects\Nebulae.Collections\Nebulae.Collections.csproj" />
+	</ItemGroup>
+
+</Project>

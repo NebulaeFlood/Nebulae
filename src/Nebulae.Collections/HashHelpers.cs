@@ -25,7 +25,7 @@ namespace Nebulae.Collections
         private const int Count = 72;
 
         private const int HashPrime = 101;
-        private const ulong HashPrimeMultiplier = ulong.MaxValue / 101ul + 1;
+        private const ulong HashPrimeMultiplier = ulong.MaxValue / 101U + 1;
 
         #endregion
 
@@ -78,7 +78,7 @@ namespace Nebulae.Collections
             {
                 for (int i = size | 1; i < MaxSize; i += 2)
                 {
-                    if (IsPrime(i) && Modulo((uint)(i - 1u), HashPrime, HashPrimeMultiplier) != 0)
+                    if (IsPrime(i) && Modulo((uint)(i - 1U), HashPrime, HashPrimeMultiplier) != 0)
                     {
                         return i;
                     }
@@ -120,22 +120,32 @@ namespace Nebulae.Collections
                 return false;
             }
 
+            int growth;
+
             if (size < 4)
             {
-                newSize = size << 1;
+                growth = size << 1;
+
+                if ((uint)growth > MaxSize)
+                {
+                    newSize = MaxSize;
+                    return true;
+                }
             }
             else
             {
-                newSize = (int)MathF.Ceiling(size * CollectionHelpers.GoldenRatio);
+                float calculatedGrowth = MathF.Ceiling(size * CollectionHelpers.GoldenRatio);
+
+                if (calculatedGrowth > MaxSize)
+                {
+                    newSize = MaxSize;
+                    return true;
+                }
+
+                growth = (int)calculatedGrowth;
             }
 
-            if ((uint)newSize > MaxSize)
-            {
-                newSize = MaxSize;
-                return true;
-            }
-
-            newSize = GetPrime(size);
+            newSize = GetPrime(growth);
             return true;
         }
 
@@ -147,6 +157,11 @@ namespace Nebulae.Collections
         /// <remarks>当找不到适合的质数时，返回 <see cref="MaxSize"/>。</remarks>
         public static int GetPrime(int min)
         {
+            if (min >= MaxSize)
+            {
+                return MaxSize;
+            }
+
             for (int i = 0; i < Count; i++)
             {
                 var num = Primes[i];
@@ -157,11 +172,18 @@ namespace Nebulae.Collections
                 }
             }
 
+            int candidate = min | 1;
+
+            if (candidate <= min)
+            {
+                candidate += 2;
+            }
+
             if (Bit64)
             {
-                for (int i = min | 1; i < MaxSize; i += 2)
+                for (int i = candidate; i < MaxSize; i += 2)
                 {
-                    if (IsPrime(i) && Modulo((uint)(i - 1u), HashPrime, HashPrimeMultiplier) != 0)
+                    if (IsPrime(i) && Modulo((uint)(i - 1U), HashPrime, HashPrimeMultiplier) != 0)
                     {
                         return i;
                     }
@@ -169,7 +191,7 @@ namespace Nebulae.Collections
             }
             else
             {
-                for (int i = min | 1; i < MaxSize; i += 2)
+                for (int i = candidate; i < MaxSize; i += 2)
                 {
                     if (IsPrime(i) && ((i - 1) % HashPrime != 0))
                     {
@@ -188,6 +210,11 @@ namespace Nebulae.Collections
         /// <returns>若 <paramref name="candidate"/> 是质数，返回 <see langword="true"/>；反之则返回 <see langword="false"/>。</returns>
         public static bool IsPrime(int candidate)
         {
+            if (candidate < 2)
+            {
+                return false;
+            }
+
             if ((candidate & 1) is 0)
             {
                 return candidate is 2;

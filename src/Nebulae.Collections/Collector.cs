@@ -4,8 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Nebulae.Collections
 {
@@ -13,8 +11,8 @@ namespace Nebulae.Collections
     /// 收集器
     /// </summary>
     /// <typeparam name="T">收集的元素类型</typeparam>
-    [DebuggerTypeProxy(typeof(CollectorDebugView<>))]
-    public struct Collector<T> : IEnumerable<T>
+    [DebuggerTypeProxy(typeof(CollectionDebugView<>))]
+    public ref struct Collector<T> : ICollectionDebugView<T>
     {
         /// <summary>
         /// 获取元素数量
@@ -54,7 +52,7 @@ namespace Nebulae.Collections
         /// 初始化 <see cref="Collector{T}"/> 的新实例
         /// </summary>
         /// <param name="items">要收集的元素</param>
-        /// <remarks>此构造函数默认 <paramref name="items"/> 是满的。</remarks>
+        /// <remarks>此构造函数默认 <paramref name="items"/> 不含空元素。</remarks>
         public Collector(T[] items)
         {
             ThrowHelpers.ThrowIfArgumentNull(items);
@@ -118,12 +116,6 @@ namespace Nebulae.Collections
         {
             ThrowHelpers.ThrowIfArgumentNull(array);
             ThrowHelpers.ThrowIfArgumentNegative(arrayIndex);
-
-            int arrayLength = array.Length;
-
-            CollectionHelpers.ThrowHelpers.ThrowIfArrayNotLongEnough(arrayIndex, arrayLength);
-            CollectionHelpers.ThrowHelpers.ThrowIfArrayNotLongEnough(arrayIndex, arrayLength, _count);
-
             Array.Copy(_items, 0, array, arrayIndex, _count);
         }
 
@@ -155,27 +147,6 @@ namespace Nebulae.Collections
 
         //------------------------------------------------------
         //
-        //  IEnumerable
-        //
-        //------------------------------------------------------
-
-        #region IEnumerable
-
-        readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
-        {
-            return new Enumerator(this);
-        }
-
-        readonly IEnumerator IEnumerable.GetEnumerator()
-        {
-            return new Enumerator(this);
-        }
-
-        #endregion
-
-
-        //------------------------------------------------------
-        //
         //  Private Fields
         //
         //------------------------------------------------------
@@ -191,7 +162,7 @@ namespace Nebulae.Collections
         /// <summary>
         /// <see cref="Collector{T}"/> 的枚举器
         /// </summary>
-        public struct Enumerator : IEnumerator<T>
+        public ref struct Enumerator : IEnumerator<T>
         {
             /// <summary>
             /// 获取枚举器当前指向的元素
@@ -258,14 +229,5 @@ namespace Nebulae.Collections
 
             #endregion
         }
-    }
-
-
-    internal sealed class CollectorDebugView<T>(Collector<T> collector)
-    {
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-#pragma warning disable IDE0305
-        public T[] Items => collector.ToArray();
-#pragma warning restore IDE0305
     }
 }

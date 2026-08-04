@@ -37,19 +37,11 @@ namespace Nebulae.Collections
                 return int.MaxValue;
             }
 
-            if (value < 4)
-            {
-                return value << 1;
-            }
+            value = value < 4
+                ? (value | 0b11) << 1
+                : (int)MathF.Ceiling(value * GoldenRatio);
 
-            value = (int)MathF.Ceiling(value * GoldenRatio);
-
-            if ((uint)value > int.MaxValue)
-            {
-                return int.MaxValue;
-            }
-
-            return value;
+            return (uint)value > int.MaxValue ? int.MaxValue : value;
         }
 
         /// <summary>
@@ -73,19 +65,11 @@ namespace Nebulae.Collections
                 return maxValue;
             }
 
-            if (value < 4)
-            {
-                return value << 1;
-            }
+            value = value < 4
+                ? (value | 0b11) << 1
+                : (int)MathF.Ceiling(value * GoldenRatio);
 
-            value = (int)MathF.Ceiling(value * GoldenRatio);
-
-            if ((uint)value > maxValue)
-            {
-                return maxValue;
-            }
-
-            return value;
+            return (uint)value > maxValue ? maxValue : value;
         }
 
 
@@ -186,7 +170,6 @@ namespace Nebulae.Collections
         /// <summary>
         /// 集合不安全操作的工具类
         /// </summary>
-        /// <remarks>.NET 5 之前的版本没有实现不安全操作。</remarks>
         public static class Unsafe
         {
             /// <summary>
@@ -201,7 +184,7 @@ namespace Nebulae.Collections
 #if NET5_0_OR_GREATER
                 return ref MemoryMarshal.GetArrayDataReference(array);
 #else
-                return ref array[0];
+                return ref MemoryMarshal.GetReference(new Span<T>(array));
 #endif
             }
 
@@ -219,7 +202,7 @@ namespace Nebulae.Collections
 #if NET5_0_OR_GREATER
                 return ref System.Runtime.CompilerServices.Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(array), index);
 #else
-                return ref array[index];
+                return ref System.Runtime.CompilerServices.Unsafe.Add(ref MemoryMarshal.GetReference(new Span<T>(array)), index);
 #endif
             }
 
@@ -237,7 +220,7 @@ namespace Nebulae.Collections
 #if NET5_0_OR_GREATER
                 return ref System.Runtime.CompilerServices.Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(array), index);
 #else
-                return ref array[index];
+                return ref System.Runtime.CompilerServices.Unsafe.Add(ref MemoryMarshal.GetReference(new Span<T>(array)), index);
 #endif
             }
         }
