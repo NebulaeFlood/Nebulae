@@ -31,10 +31,10 @@ namespace Nebulae.Runtime.Emit.Inline
         /// <returns>表示当前方法的占位符未被正确内联时抛出的异常。</returns>
         /// <remarks>
         /// <para>
-        /// 此占位符设计用于表示方法结尾，防止编译时要求方法必须有返回值。
+        /// 此方法必须以 <c>throw IL.Fail();</c> 的形式使用。
         /// </para>
         /// <para>
-        /// <b>此占位符后的所有代码将被移除。</b>
+        /// 此占位符不会为重写后的代码生成控制流终止指令。
         /// </para>
         /// </remarks>
         [Placeholder(PlaceholderCode.Fail, isPrimitive: false)]

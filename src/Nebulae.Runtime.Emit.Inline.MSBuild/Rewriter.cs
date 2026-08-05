@@ -47,11 +47,6 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                                 instruction.Consume();
                                 break;
                             case PlaceholderCode.Fail:
-                                for (var current = instruction.Previous; current?.OpCode.Code is Code.Nop; current = current.Previous)
-                                {
-                                    current.Consume();
-                                }
-
                                 instruction.Consume();
                                 instruction = instruction.Next;
 
@@ -62,12 +57,8 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                                         .With(placeholder.Instruction);
                                 }
 
-                                do
-                                {
-                                    instruction.Consume();
-                                    instruction = instruction.Next;
-                                }
-                                while (instruction is not null);
+                                instruction.Consume();
+                                instruction = instruction.Next;
                                 break;
                             default:
                                 throw new NotSupportedException($"Unsupported placeholder code: {placeholder.Code}.")
@@ -127,15 +118,15 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
 
         private static void Finialize(this MethodDefinition definition, in RewriteContext context)
         {
-            var body = context.MethodBody;
-            var instructions = context.Instructions;
+            MethodBody body = context.MethodBody;
+            Collection<Instruction> instructions = context.Instructions;
 
             bool anyBranch = false;
 
             for (int i = instructions.Count - 1; i >= 0; i--)
             {
-                var instruction = instructions[i];
-                var operand = instruction.Operand;
+                Instruction instruction = instructions[i];
+                object operand = instruction.Operand;
 
                 if (operand == Obsolete)
                 {
@@ -486,6 +477,19 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild
                 {
                     anyBranch = true;
                 }
+            }
+
+            for (int i = instructions.Count - 1; i >= 0; i--)
+            {
+                Instruction instruction = instructions[i];
+
+                if (instruction.OpCode.Code is not Code.Nop)
+                {
+                    break;
+                }
+
+                context.Remove(instruction);
+                instructions.RemoveAt(i);
             }
 
             if (!anyBranch)
