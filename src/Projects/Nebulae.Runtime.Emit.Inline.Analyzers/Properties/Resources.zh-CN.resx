@@ -121,28 +121,46 @@
     <value>每个方法中的同名内联 IL 标签最多只能定义一次。</value>
   </data>
   <data name="DuplicateLabelMessage" xml:space="preserve">
-    <value>标签 '{0}' 被重复定义</value>
+    <value>内联 IL 标签 '{0}' 被重复定义</value>
   </data>
   <data name="DuplicateLabelTitle" xml:space="preserve">
     <value>内联 IL 标签被重复定义</value>
   </data>
-  <data name="InvalidContextDescription" xml:space="preserve">
-    <value>占位符成员必须为可执行方法体中的直接调用。</value>
+  <data name="InvalidInstructionUsageDescription" xml:space="preserve">
+    <value>内联 IL 指令必须在可执行方法体中直接调用，不能作为值传递或出现在表达式树中。</value>
   </data>
-  <data name="InvalidContextMessage" xml:space="preserve">
-    <value>内联 IL 占位符成员 '{0}' 不能用作方法组、出现在表达式树中或用于可执行方法体之外</value>
+  <data name="InvalidInstructionUsageMessage" xml:space="preserve">
+    <value>内联 IL 指令 '{0}' 必须在可执行方法体中直接调用</value>
   </data>
-  <data name="InvalidContextTitle" xml:space="preserve">
-    <value>内联 IL 占位符成员用于不受支持的上下文</value>
+  <data name="InvalidInstructionUsageTitle" xml:space="preserve">
+    <value>内联 IL 指令使用方式无效</value>
   </data>
-  <data name="InvalidOperandValueDescription" xml:space="preserve">
-    <value>内联 IL 操作数必须使用目标指令支持的值。</value>
+  <data name="InvalidConstantValueDescription" xml:space="preserve">
+    <value>内联 IL 指令必须使用其支持的常量值。</value>
   </data>
-  <data name="InvalidOperandValueMessage" xml:space="preserve">
-    <value>内联 IL 占位符成员 '{0}' 的操作数值无效</value>
+  <data name="InvalidConstantValueMessage" xml:space="preserve">
+    <value>内联 IL 指令 '{0}' 的常量值无效</value>
   </data>
-  <data name="InvalidOperandValueTitle" xml:space="preserve">
-    <value>内联 IL 操作数值无效</value>
+  <data name="InvalidConstantValueTitle" xml:space="preserve">
+    <value>内联 IL 常量值无效</value>
+  </data>
+  <data name="InvalidExtendedInstructionUsageDescription" xml:space="preserve">
+    <value>内联 IL 拓展指令必须采用重写器要求的源码形式。</value>
+  </data>
+  <data name="InvalidExtendedInstructionUsageMessage" xml:space="preserve">
+    <value>内联 IL 拓展指令 '{0}' 必须采用其要求的源码形式</value>
+  </data>
+  <data name="InvalidExtendedInstructionUsageTitle" xml:space="preserve">
+    <value>内联 IL 拓展指令使用方式不规范</value>
+  </data>
+  <data name="InvalidVariableOperandDescription" xml:space="preserve">
+    <value>变量操作数必须直接引用当前函数的参数、当前实例或局部变量。</value>
+  </data>
+  <data name="InvalidVariableOperandMessage" xml:space="preserve">
+    <value>内联 IL 指令 '{0}' 的操作数必须直接引用当前函数的参数、当前实例或局部变量</value>
+  </data>
+  <data name="InvalidVariableOperandTitle" xml:space="preserve">
+    <value>内联 IL 变量操作数无效</value>
   </data>
   <data name="NonConstantOperandDescription" xml:space="preserve">
     <value>内联 IL 标量操作数必须是 C# 编译器能够确定的常量。</value>
@@ -162,14 +180,23 @@
   <data name="PlaceholderTypeTitle" xml:space="preserve">
     <value>不能存储或公开内联 IL 占位符类型</value>
   </data>
-  <data name="ReferenceEscapeDescription" xml:space="preserve">
-    <value>内联 IL 引用 API 生成的值是编译期占位符，不能存储、返回或传递给普通代码。</value>
+  <data name="InvalidPlaceholderReferenceExpressionUsageDescription" xml:space="preserve">
+    <value>内联 IL 占位符引用表达式必须衔接后续占位符引用表达式，或由指令直接使用。</value>
   </data>
-  <data name="ReferenceEscapeMessage" xml:space="preserve">
-    <value>引用占位符必须由内联 IL 占位符直接使用</value>
+  <data name="InvalidPlaceholderReferenceExpressionUsageMessage" xml:space="preserve">
+    <value>以 '{0}' 结尾的内联 IL 占位符引用表达式必须衔接后续占位符引用表达式，或由指令直接使用</value>
   </data>
-  <data name="ReferenceEscapeTitle" xml:space="preserve">
-    <value>内联 IL 引用值逃离了占位符表达式</value>
+  <data name="InvalidPlaceholderReferenceExpressionUsageTitle" xml:space="preserve">
+    <value>内联 IL 占位符引用表达式使用方式无效</value>
+  </data>
+  <data name="RepeatedGenericMethodConstructionDescription" xml:space="preserve">
+    <value>泛型方法引用只能从已选择的泛型方法定义构造一次。</value>
+  </data>
+  <data name="RepeatedGenericMethodConstructionMessage" xml:space="preserve">
+    <value>内联 IL 方法引用不能多次调用 'MakeGeneric'</value>
+  </data>
+  <data name="RepeatedGenericMethodConstructionTitle" xml:space="preserve">
+    <value>泛型方法引用被重复构造</value>
   </data>
   <data name="UndefinedLabelDescription" xml:space="preserve">
     <value>内联 IL 目标分支引用的标签未在方法体中定义。</value>
@@ -179,5 +206,14 @@
   </data>
   <data name="UndefinedLabelTitle" xml:space="preserve">
     <value>内联 IL 分支目标未定义</value>
+  </data>
+  <data name="InvalidPlaceholderUsageTitle" xml:space="preserve">
+    <value>内联 IL 占位符类型不能在此处用于 typeof 表达式</value>
+  </data>
+  <data name="InvalidPlaceholderUsageMessage" xml:space="preserve">
+    <value>内联 IL 占位符类型 '{0}' 不能在此上下文中用于 typeof 表达式</value>
+  </data>
+  <data name="InvalidPlaceholderUsageDescription" xml:space="preserve">
+    <value>占位符类型只能在受支持的内联 IL 引用 API 参数中用于 typeof 表达式。</value>
   </data>
 </root>

@@ -24,9 +24,6 @@
     <Project Path="src/Nebulae.Diagnostics/Nebulae.Diagnostics.shproj" Id="4ca31b01-1d54-451c-824c-b679f8b27ff1" />
     <Project Path="src/Nebulae.Lifetime.WeakEvents/Nebulae.Lifetime.WeakEvents.shproj" Id="e01141f1-ba0c-4994-8515-742918f672cd" />
     <Project Path="src/Nebulae.Reflection/Nebulae.Reflection.shproj" Id="c030c424-31cf-46f3-a943-3504bcce7359" />
-    <Project Path="src/Nebulae.Runtime.Emit.Inline.Analyzers/Nebulae.Runtime.Emit.Inline.Analyzers.shproj" Id="01e18afe-28e7-4757-8c7d-59d516167ae4" />
-    <Project Path="src/Nebulae.Runtime.Emit.Inline.MSBuild/Nebulae.Runtime.Emit.Inline.MSBuild.shproj" Id="8f699f1c-6553-4a41-8993-dc476c24c491" />
-    <Project Path="src/Nebulae.Runtime.Emit.Inline/Nebulae.Runtime.Emit.Inline.shproj" Id="6cd66670-4d07-43ba-b70f-c5c89d58688b" />
     <Project Path="src/Nebulae.Runtime.Emit/Nebulae.Runtime.Emit.shproj" Id="b6c68fc1-ca16-4652-a8dd-c007cb89660e" />
     <Project Path="src/Nebulae.Runtime.Forge/Nebulae.Runtime.Forge.shproj" Id="f8ba46ba-bc7c-47df-9478-e82795eb0502" />
     <Project Path="src/System.Diagnostics.CodeAnalysis/System.Diagnostics.CodeAnalysis.shproj" Id="d71f5434-02e8-4044-a316-57f6a0cbe7ab" />
@@ -36,6 +33,9 @@
     <Project Path="src/Tests/Tests.Collections/Tests.Collections.csproj" />
     <Project Path="src/Tests/Tests.Demo/Tests.Demo.csproj" Id="14b9dfb2-4866-4bc3-b2dc-0316b4508b25" />
     <Project Path="src/Tests/Tests.Lifetime.WeakEvents/Tests.Lifetime.WeakEvents.csproj" />
-    <Project Path="src/Tests/Tests.Runtime.Emit.Inline/Tests.Runtime.Emit.Inline.csproj" />
+    <Project Path="src/Tests/Tests.Runtime.Emit.Inline.Analyzers/Tests.Runtime.Emit.Inline.Analyzers.csproj" />
+    <Project Path="src/Tests/Tests.Runtime.Emit.Inline.Infrastructure/Tests.Runtime.Emit.Inline.Infrastructure.csproj" />
+    <Project Path="src/Tests/Tests.Runtime.Emit.Inline.Package/Tests.Runtime.Emit.Inline.Package.csproj" />
+    <Project Path="src/Tests/Tests.Runtime.Emit.Inline.Rewriter/Tests.Runtime.Emit.Inline.Rewriter.csproj" />
   </Folder>
 </Solution>

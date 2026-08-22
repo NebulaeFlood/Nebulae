@@ -121,28 +121,46 @@
     <value>Inline IL labels with the same name must be defined at most once in each method.</value>
   </data>
   <data name="DuplicateLabelMessage" xml:space="preserve">
-    <value>Label '{0}' is defined more than once</value>
+    <value>Inline IL label '{0}' is defined more than once</value>
   </data>
   <data name="DuplicateLabelTitle" xml:space="preserve">
     <value>Inline IL label is defined more than once</value>
   </data>
-  <data name="InvalidContextDescription" xml:space="preserve">
-    <value>Placeholder members must be direct calls in an executable method body.</value>
+  <data name="InvalidInstructionUsageDescription" xml:space="preserve">
+    <value>Inline IL instructions must be called directly in an executable method body and cannot be passed as values or represented in expression trees.</value>
   </data>
-  <data name="InvalidContextMessage" xml:space="preserve">
-    <value>Inline IL placeholder member '{0}' cannot be used as a method group, in an expression tree, or outside an executable method body</value>
+  <data name="InvalidInstructionUsageMessage" xml:space="preserve">
+    <value>Inline IL instruction '{0}' must be called directly in an executable method body</value>
   </data>
-  <data name="InvalidContextTitle" xml:space="preserve">
-    <value>Inline IL placeholder member is used in an unsupported context</value>
+  <data name="InvalidInstructionUsageTitle" xml:space="preserve">
+    <value>Inline IL instruction usage is invalid</value>
   </data>
-  <data name="InvalidOperandValueDescription" xml:space="preserve">
-    <value>Inline IL operands must use values supported by the target instruction.</value>
+  <data name="InvalidConstantValueDescription" xml:space="preserve">
+    <value>Inline IL instruction members must use supported constant values.</value>
   </data>
-  <data name="InvalidOperandValueMessage" xml:space="preserve">
-    <value>Operand for inline IL placeholder member '{0}' has an invalid value</value>
+  <data name="InvalidConstantValueMessage" xml:space="preserve">
+    <value>Constant value for inline IL instruction member '{0}' is invalid</value>
   </data>
-  <data name="InvalidOperandValueTitle" xml:space="preserve">
-    <value>Inline IL operand has an invalid value</value>
+  <data name="InvalidConstantValueTitle" xml:space="preserve">
+    <value>Inline IL constant value is invalid</value>
+  </data>
+  <data name="InvalidExtendedInstructionUsageDescription" xml:space="preserve">
+    <value>Inline IL extended instructions must use the source forms required by the rewriter.</value>
+  </data>
+  <data name="InvalidExtendedInstructionUsageMessage" xml:space="preserve">
+    <value>Inline IL extended instruction '{0}' must use its required source form</value>
+  </data>
+  <data name="InvalidExtendedInstructionUsageTitle" xml:space="preserve">
+    <value>Inline IL extended instruction usage is invalid</value>
+  </data>
+  <data name="InvalidVariableOperandDescription" xml:space="preserve">
+    <value>Variable operands must directly reference a parameter, the current instance, or a local variable of the containing function.</value>
+  </data>
+  <data name="InvalidVariableOperandMessage" xml:space="preserve">
+    <value>Operand for inline IL instruction '{0}' must directly reference a parameter, the current instance, or a local variable of the containing function</value>
+  </data>
+  <data name="InvalidVariableOperandTitle" xml:space="preserve">
+    <value>Inline IL variable operand is invalid</value>
   </data>
   <data name="NonConstantOperandDescription" xml:space="preserve">
     <value>Inline IL scalar operands must be known by the C# compiler as constants.</value>
@@ -162,14 +180,23 @@
   <data name="PlaceholderTypeTitle" xml:space="preserve">
     <value>Inline IL placeholder type cannot be stored or exposed</value>
   </data>
-  <data name="ReferenceEscapeDescription" xml:space="preserve">
-    <value>Values produced by the inline IL reference API are compile-time placeholders and cannot be stored, returned, or passed to ordinary code.</value>
+  <data name="InvalidPlaceholderReferenceExpressionUsageDescription" xml:space="preserve">
+    <value>Inline IL placeholder reference expressions must continue into other placeholder reference expressions or be used directly by instructions.</value>
   </data>
-  <data name="ReferenceEscapeMessage" xml:space="preserve">
-    <value>Reference placeholder must be consumed directly by an inline IL placeholder</value>
+  <data name="InvalidPlaceholderReferenceExpressionUsageMessage" xml:space="preserve">
+    <value>The Inline IL placeholder reference expression ending with '{0}' must continue into another placeholder reference expression or be used directly by an instruction</value>
   </data>
-  <data name="ReferenceEscapeTitle" xml:space="preserve">
-    <value>Inline IL reference value escapes its placeholder expression</value>
+  <data name="InvalidPlaceholderReferenceExpressionUsageTitle" xml:space="preserve">
+    <value>Inline IL placeholder reference expression usage is invalid</value>
+  </data>
+  <data name="RepeatedGenericMethodConstructionDescription" xml:space="preserve">
+    <value>A generic method reference can only be constructed once from its selected generic method definition.</value>
+  </data>
+  <data name="RepeatedGenericMethodConstructionMessage" xml:space="preserve">
+    <value>Inline IL method reference cannot call 'MakeGeneric' more than once</value>
+  </data>
+  <data name="RepeatedGenericMethodConstructionTitle" xml:space="preserve">
+    <value>Generic method reference is constructed more than once</value>
   </data>
   <data name="UndefinedLabelDescription" xml:space="preserve">
     <value>The label referenced by an inline IL branch target is not defined in the method body.</value>
@@ -179,5 +206,14 @@
   </data>
   <data name="UndefinedLabelTitle" xml:space="preserve">
     <value>Inline IL branch target is not defined</value>
+  </data>
+  <data name="InvalidPlaceholderUsageTitle" xml:space="preserve">
+    <value>Inline IL placeholder type cannot be used in a typeof expression here</value>
+  </data>
+  <data name="InvalidPlaceholderUsageMessage" xml:space="preserve">
+    <value>Inline IL placeholder type '{0}' cannot be used in a typeof expression in this context</value>
+  </data>
+  <data name="InvalidPlaceholderUsageDescription" xml:space="preserve">
+    <value>Inline IL placeholder types may be used in typeof expressions only as supported arguments of Inline IL reference APIs.</value>
   </data>
 </root>

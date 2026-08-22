@@ -4,6 +4,6 @@
 
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
-NEBIL001 | Usage | Error | PlaceholderAnalyzer
-NEBIL002 | Usage | Error | PlaceholderAnalyzer
-NEBIL003 | Usage | Error | PlaceholderAnalyzer
+NEBIL1001 | Usage | Error | Inline IL placeholder type is stored or exposed
+NEBIL2001 | Usage | Error | Invalid inline IL instruction usage
+NEBIL3001 | Usage | Error | Invalid inline IL placeholder reference expression usage

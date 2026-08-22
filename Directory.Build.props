@@ -27,7 +27,9 @@
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 
 		<PackageOutputPath>$(SolutionDir)build</PackageOutputPath>
-		<PackageReadmeFile Condition=" Exists('$(MSBuildProjectDirectory)\README.md') ">README.md</PackageReadmeFile>
+		
+		<_PackageReadmeSource>$(MSBuildThisFileDirectory)docs\en-US\$(MSBuildProjectName).md</_PackageReadmeSource>
+		<PackageReadmeFile Condition=" Exists('$(_PackageReadmeSource)') ">README.md</PackageReadmeFile>
 
 		<RepositoryUrl>https://github.com/NebulaeFlood/Nebulae</RepositoryUrl>
 	</PropertyGroup>
@@ -43,8 +45,12 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="!$(MSBuildProjectName.StartsWith('Tests'))">
-		<None Include="..\..\..\LICENSE.txt" Pack="true" PackagePath="\" />
-		<None Include="README.md" Condition=" Exists('$(MSBuildProjectDirectory)\README.md') " Pack="true" PackagePath="\" />
+		<None Include="..\..\..\LICENSE.txt" Pack="true" PackagePath="\" Visible="false" />
+		<None Include="$(_PackageReadmeSource)"
+			  Link="Properties\README.md"
+			  Condition=" Exists('$(_PackageReadmeSource)') "
+			  Pack="true"
+			  PackagePath="README.md" />
 	</ItemGroup>
 
 	<PropertyGroup>

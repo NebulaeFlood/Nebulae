@@ -11,15 +11,46 @@ namespace Nebulae.Collections
     /// 收集器
     /// </summary>
     /// <typeparam name="T">收集的元素类型</typeparam>
-    [DebuggerTypeProxy(typeof(CollectionDebugView<>))]
-    public ref struct Collector<T> : ICollectionDebugView<T>
+    [DebuggerDisplay("Count = {_count}")]
+    [DebuggerTypeProxy(typeof(CollectionHelpers.DebugView<>))]
+    public sealed class Collector<T> : IEnumerable<T>
     {
+        //------------------------------------------------------
+        //
+        //  Public Properties
+        //
+        //------------------------------------------------------
+
+        #region Public Properties
+
         /// <summary>
         /// 获取元素数量
         /// </summary>
-        public readonly int Count
+        public int Count
         {
             get => _count;
+        }
+
+        /// <summary>
+        /// 获取一个值，该值指示此列表是否为空
+        /// </summary>
+        public bool IsEmpty
+        {
+            get => _count is 0;
+        }
+
+        #endregion
+
+
+        /// <summary>
+        /// 获取指定索引处的元素
+        /// </summary>
+        /// <param name="index">目标索引</param>
+        /// <returns>指定索引处的元素。</returns>
+        /// <remarks>索引范围由内部数组的长度决定，而非 <see cref="Count"/>。</remarks>
+        public T? this[uint index]
+        {
+            get => _items[index];
         }
 
 
@@ -49,10 +80,17 @@ namespace Nebulae.Collections
         }
 
         /// <summary>
-        /// 初始化 <see cref="Collector{T}"/> 的新实例
+        /// 初始化 <see cref="ValueCollector{T}"/> 的新实例
         /// </summary>
         /// <param name="items">要收集的元素</param>
-        /// <remarks>此构造函数默认 <paramref name="items"/> 不含空元素。</remarks>
+        /// <remarks>
+        /// <para>
+        /// 此构造函数直接将 <paramref name="items"/> 作为内部数组且默认其不含空元素。
+        /// </para>
+        /// <para>
+        /// 扩容后，传入的 <paramref name="items"/> 将不再作为内部数组。
+        /// </para>
+        /// </remarks>
         public Collector(T[] items)
         {
             ThrowHelpers.ThrowIfArgumentNull(items);
@@ -75,9 +113,9 @@ namespace Nebulae.Collections
         /// <summary>
         /// 创建一个包含所有收集的元素的 <see cref="Memory{T}"/>
         /// </summary>
-        /// <returns>包含所有此 <see cref="Collector{T}"/> 收集的元素的 <see cref="Memory{T}"/>。</returns>
+        /// <returns>包含所有此 <see cref="ValueCollector{T}"/> 收集的元素的 <see cref="Memory{T}"/>。</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly Memory<T> AsMemory()
+        public Memory<T> AsMemory()
         {
             return new Memory<T>(_items, 0, _count);
         }
@@ -85,9 +123,9 @@ namespace Nebulae.Collections
         /// <summary>
         /// 创建一个包含所有收集的元素的 <see cref="Span{T}"/>
         /// </summary>
-        /// <returns>包含所有此 <see cref="Collector{T}"/> 收集的元素的 <see cref="Span{T}"/>。</returns>
+        /// <returns>包含所有此 <see cref="ValueCollector{T}"/> 收集的元素的 <see cref="Span{T}"/>。</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly Span<T> AsSpan()
+        public Span<T> AsSpan()
         {
             return new Span<T>(_items, 0, _count);
         }
@@ -108,11 +146,57 @@ namespace Nebulae.Collections
         }
 
         /// <summary>
+        /// 收集一组元素
+        /// </summary>
+        /// <param name="items">要收集的元素</param>
+        public void CollectRange(ICollection<T> items)
+        {
+            ThrowHelpers.ThrowIfArgumentNull(items);
+
+            if (_count == _items.Length || _count + items.Count > _items.Length)
+            {
+                Array.Resize(ref _items, CollectionHelpers.Grow(_count + items.Count));
+            }
+
+            items.CopyTo(_items, _count);
+            _count += items.Count;
+        }
+
+        /// <summary>
+        /// 收集一组元素
+        /// </summary>
+        /// <param name="items">要收集的元素</param>
+        public void CollectRange(IEnumerable<T> items)
+        {
+            ThrowHelpers.ThrowIfArgumentNull(items);
+
+            foreach (var item in items)
+            {
+                Collect(item);
+            }
+        }
+
+        /// <summary>
+        /// 收集一组元素
+        /// </summary>
+        /// <param name="items">要收集的元素</param>
+        public void CollectRange(scoped ReadOnlySpan<T> items)
+        {
+            if (_count == _items.Length || _count + items.Length > _items.Length)
+            {
+                Array.Resize(ref _items, CollectionHelpers.Grow(_count + items.Length));
+            }
+
+            items.CopyTo(new Span<T>(_items, _count, items.Length));
+            _count += items.Length;
+        }
+
+        /// <summary>
         /// 将收集的元素复制到指定数组
         /// </summary>
         /// <param name="array">目标数组</param>
         /// <param name="arrayIndex">目标数组中的起始索引</param>
-        public readonly void CopyTo(T[] array, int arrayIndex)
+        public void CopyTo(T[] array, int arrayIndex)
         {
             ThrowHelpers.ThrowIfArgumentNull(array);
             ThrowHelpers.ThrowIfArgumentNegative(arrayIndex);
@@ -123,15 +207,15 @@ namespace Nebulae.Collections
         /// 获取循环访问集合的枚举器
         /// </summary>
         /// <returns>可用于循环访问集合的枚举器。</returns>
-        public readonly Enumerator GetEnumerator()
+        public Enumerator GetEnumerator()
         {
             return new Enumerator(this);
         }
 
         /// <summary>
-        /// 将 <see cref="Collector{T}"/> 转换为数组
+        /// 将 <see cref="ValueCollector{T}"/> 转换为数组
         /// </summary>
-        /// <returns>此 <see cref="Collector{T}"/> 用于收集元素的数组。</returns>
+        /// <returns>此 <see cref="ValueCollector{T}"/> 用于收集元素的数组。</returns>
         public T[] ToArray()
         {
             if (_count < _items.Length)
@@ -141,6 +225,21 @@ namespace Nebulae.Collections
 
             return _items;
         }
+
+        #endregion
+
+
+        //------------------------------------------------------
+        //
+        //  IEnumerable
+        //
+        //------------------------------------------------------
+
+        #region IEnumerable
+
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => new Enumerator(this);
+
+        IEnumerator IEnumerable.GetEnumerator() => new Enumerator(this);
 
         #endregion
 
@@ -162,7 +261,7 @@ namespace Nebulae.Collections
         /// <summary>
         /// <see cref="Collector{T}"/> 的枚举器
         /// </summary>
-        public ref struct Enumerator : IEnumerator<T>
+        public struct Enumerator : IEnumerator<T>
         {
             /// <summary>
             /// 获取枚举器当前指向的元素

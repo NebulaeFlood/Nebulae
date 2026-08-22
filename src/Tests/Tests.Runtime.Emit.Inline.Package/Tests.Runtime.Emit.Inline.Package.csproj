@@ -1,0 +1,22 @@
+<Project Sdk="MSTest.Sdk/4.0.2">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<CICD>inline-il-package</CICD>
+		<CICDOperatingSystems>linux;windows</CICDOperatingSystems>
+		<CICDConfigurations>Release</CICDConfigurations>
+		<CICDStage>package</CICDStage>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<EnableMicrosoftTestingExtensionsCodeCoverage>false</EnableMicrosoftTestingExtensionsCodeCoverage>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Mono.Cecil" Version="0.11.6" PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Tests.Runtime.Emit.Inline.Infrastructure\Tests.Runtime.Emit.Inline.Infrastructure.csproj" />
+	</ItemGroup>
+
+</Project>

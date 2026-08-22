@@ -61,29 +61,218 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Placeholder members must be direct calls in an executable method body. 的本地化字符串。
+        ///   查找类似 Inline IL labels with the same name must be defined at most once in each method. 的本地化字符串。
         /// </summary>
-        internal static string InvalidContextDescription {
+        internal static string DuplicateLabelDescription {
             get {
-                return ResourceManager.GetString("InvalidContextDescription", resourceCulture);
+                return ResourceManager.GetString("DuplicateLabelDescription", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   查找类似 Inline IL placeholder member &apos;{0}&apos; cannot be used as a method group, in an expression tree, or outside an executable method body 的本地化字符串。
+        ///   查找类似 Inline IL label &apos;{0}&apos; is defined more than once 的本地化字符串。
         /// </summary>
-        internal static string InvalidContextMessage {
+        internal static string DuplicateLabelMessage {
             get {
-                return ResourceManager.GetString("InvalidContextMessage", resourceCulture);
+                return ResourceManager.GetString("DuplicateLabelMessage", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   查找类似 Inline IL placeholder member is used in an unsupported context 的本地化字符串。
+        ///   查找类似 Inline IL label is defined more than once 的本地化字符串。
         /// </summary>
-        internal static string InvalidContextTitle {
+        internal static string DuplicateLabelTitle {
             get {
-                return ResourceManager.GetString("InvalidContextTitle", resourceCulture);
+                return ResourceManager.GetString("DuplicateLabelTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL instruction members must use supported constant values. 的本地化字符串。
+        /// </summary>
+        internal static string InvalidConstantValueDescription {
+            get {
+                return ResourceManager.GetString("InvalidConstantValueDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Constant value for inline IL instruction member &apos;{0}&apos; is invalid 的本地化字符串。
+        /// </summary>
+        internal static string InvalidConstantValueMessage {
+            get {
+                return ResourceManager.GetString("InvalidConstantValueMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL constant value is invalid 的本地化字符串。
+        /// </summary>
+        internal static string InvalidConstantValueTitle {
+            get {
+                return ResourceManager.GetString("InvalidConstantValueTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL extended instructions must use the source forms required by the rewriter. 的本地化字符串。
+        /// </summary>
+        internal static string InvalidExtendedInstructionUsageDescription {
+            get {
+                return ResourceManager.GetString("InvalidExtendedInstructionUsageDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL extended instruction &apos;{0}&apos; must use its required source form 的本地化字符串。
+        /// </summary>
+        internal static string InvalidExtendedInstructionUsageMessage {
+            get {
+                return ResourceManager.GetString("InvalidExtendedInstructionUsageMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL extended instruction usage is invalid 的本地化字符串。
+        /// </summary>
+        internal static string InvalidExtendedInstructionUsageTitle {
+            get {
+                return ResourceManager.GetString("InvalidExtendedInstructionUsageTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL instructions must be called directly in an executable method body and cannot be passed as values or represented in expression trees. 的本地化字符串。
+        /// </summary>
+        internal static string InvalidInstructionUsageDescription {
+            get {
+                return ResourceManager.GetString("InvalidInstructionUsageDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL instruction &apos;{0}&apos; must be called directly in an executable method body 的本地化字符串。
+        /// </summary>
+        internal static string InvalidInstructionUsageMessage {
+            get {
+                return ResourceManager.GetString("InvalidInstructionUsageMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL instruction usage is invalid 的本地化字符串。
+        /// </summary>
+        internal static string InvalidInstructionUsageTitle {
+            get {
+                return ResourceManager.GetString("InvalidInstructionUsageTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL placeholder reference expressions must continue into other placeholder reference expressions or be used directly by instructions. 的本地化字符串。
+        /// </summary>
+        internal static string InvalidPlaceholderReferenceExpressionUsageDescription {
+            get {
+                return ResourceManager.GetString("InvalidPlaceholderReferenceExpressionUsageDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The Inline IL placeholder reference expression ending with &apos;{0}&apos; must continue into another placeholder reference expression or be used directly by an instruction 的本地化字符串。
+        /// </summary>
+        internal static string InvalidPlaceholderReferenceExpressionUsageMessage {
+            get {
+                return ResourceManager.GetString("InvalidPlaceholderReferenceExpressionUsageMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL placeholder reference expression usage is invalid 的本地化字符串。
+        /// </summary>
+        internal static string InvalidPlaceholderReferenceExpressionUsageTitle {
+            get {
+                return ResourceManager.GetString("InvalidPlaceholderReferenceExpressionUsageTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL placeholder types may be used in typeof expressions only as supported arguments of Inline IL reference APIs. 的本地化字符串。
+        /// </summary>
+        internal static string InvalidPlaceholderUsageDescription {
+            get {
+                return ResourceManager.GetString("InvalidPlaceholderUsageDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL placeholder type &apos;{0}&apos; cannot be used in a typeof expression in this context 的本地化字符串。
+        /// </summary>
+        internal static string InvalidPlaceholderUsageMessage {
+            get {
+                return ResourceManager.GetString("InvalidPlaceholderUsageMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL placeholder type cannot be used in a typeof expression here 的本地化字符串。
+        /// </summary>
+        internal static string InvalidPlaceholderUsageTitle {
+            get {
+                return ResourceManager.GetString("InvalidPlaceholderUsageTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Variable operands must directly reference a parameter, the current instance, or a local variable of the containing function. 的本地化字符串。
+        /// </summary>
+        internal static string InvalidVariableOperandDescription {
+            get {
+                return ResourceManager.GetString("InvalidVariableOperandDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Operand for inline IL instruction &apos;{0}&apos; must directly reference a parameter, the current instance, or a local variable of the containing function 的本地化字符串。
+        /// </summary>
+        internal static string InvalidVariableOperandMessage {
+            get {
+                return ResourceManager.GetString("InvalidVariableOperandMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL variable operand is invalid 的本地化字符串。
+        /// </summary>
+        internal static string InvalidVariableOperandTitle {
+            get {
+                return ResourceManager.GetString("InvalidVariableOperandTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL scalar operands must be known by the C# compiler as constants. 的本地化字符串。
+        /// </summary>
+        internal static string NonConstantOperandDescription {
+            get {
+                return ResourceManager.GetString("NonConstantOperandDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Operand for inline IL placeholder member &apos;{0}&apos; must be a compile-time constant 的本地化字符串。
+        /// </summary>
+        internal static string NonConstantOperandMessage {
+            get {
+                return ResourceManager.GetString("NonConstantOperandMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL operand is not a compile-time constant 的本地化字符串。
+        /// </summary>
+        internal static string NonConstantOperandTitle {
+            get {
+                return ResourceManager.GetString("NonConstantOperandTitle", resourceCulture);
             }
         }
         
@@ -115,29 +304,56 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Values produced by the inline IL reference API are compile-time placeholders and cannot be stored, returned, or passed to ordinary code. 的本地化字符串。
+        ///   查找类似 A generic method reference can only be constructed once from its selected generic method definition. 的本地化字符串。
         /// </summary>
-        internal static string ReferenceEscapeDescription {
+        internal static string RepeatedGenericMethodConstructionDescription {
             get {
-                return ResourceManager.GetString("ReferenceEscapeDescription", resourceCulture);
+                return ResourceManager.GetString("RepeatedGenericMethodConstructionDescription", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   查找类似 Reference placeholder must be consumed directly by an inline IL placeholder 的本地化字符串。
+        ///   查找类似 Inline IL method reference cannot call &apos;MakeGeneric&apos; more than once 的本地化字符串。
         /// </summary>
-        internal static string ReferenceEscapeMessage {
+        internal static string RepeatedGenericMethodConstructionMessage {
             get {
-                return ResourceManager.GetString("ReferenceEscapeMessage", resourceCulture);
+                return ResourceManager.GetString("RepeatedGenericMethodConstructionMessage", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   查找类似 Inline IL reference value escapes its placeholder expression 的本地化字符串。
+        ///   查找类似 Generic method reference is constructed more than once 的本地化字符串。
         /// </summary>
-        internal static string ReferenceEscapeTitle {
+        internal static string RepeatedGenericMethodConstructionTitle {
             get {
-                return ResourceManager.GetString("ReferenceEscapeTitle", resourceCulture);
+                return ResourceManager.GetString("RepeatedGenericMethodConstructionTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The label referenced by an inline IL branch target is not defined in the method body. 的本地化字符串。
+        /// </summary>
+        internal static string UndefinedLabelDescription {
+            get {
+                return ResourceManager.GetString("UndefinedLabelDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL branch target &apos;{0}&apos; is not defined in the method body 的本地化字符串。
+        /// </summary>
+        internal static string UndefinedLabelMessage {
+            get {
+                return ResourceManager.GetString("UndefinedLabelMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Inline IL branch target is not defined 的本地化字符串。
+        /// </summary>
+        internal static string UndefinedLabelTitle {
+            get {
+                return ResourceManager.GetString("UndefinedLabelTitle", resourceCulture);
             }
         }
     }

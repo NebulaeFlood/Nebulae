@@ -17,6 +17,14 @@ $ErrorActionPreference = 'Stop'
 
 # 保留的 CICD 值，表示解决方案中的项目不参与 CI/CD
 $disabledCicdValue = 'none'
+$cicdMetadataPropertyNames = @(
+    'CICDOperatingSystems'
+    'CICDConfigurations'
+    'CICDStage'
+)
+$supportedOperatingSystems = @('linux', 'windows')
+$supportedConfigurations = @('Debug', 'Release')
+$supportedStages = @('source', 'package')
 
 # 定位仓库根目录
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -73,15 +81,51 @@ function Get-SolutionProjectFiles {
     }
 }
 
-# 获取项目的 CICD、IsPackable、IsTestProject 属性
+function ConvertTo-CICDValues {
+    param(
+        [Parameter(Mandatory)][string] $ProjectPath,
+        [Parameter(Mandatory)][string] $PropertyName,
+        [AllowEmptyString()][string] $Value,
+        [Parameter(Mandatory)][string[]] $DefaultValues,
+        [Parameter(Mandatory)][string[]] $SupportedValues
+    )
+
+    $values = @(
+        if ([string]::IsNullOrWhiteSpace($Value)) {
+            $DefaultValues
+        }
+        else {
+            $Value -split ';' | ForEach-Object { $_.Trim() }
+        }
+    )
+
+    if ($values.Count -eq 0 -or $null -ne ($values | Where-Object { [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1)) {
+        throw "Project '$ProjectPath' has an empty value in $PropertyName."
+    }
+
+    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($item in $values) {
+        if ($item -cnotin $SupportedValues) {
+            throw "Project '$ProjectPath' has unsupported $PropertyName value '$item'. Supported values: $($SupportedValues -join ', ')."
+        }
+
+        if (-not $seen.Add($item)) {
+            throw "Project '$ProjectPath' has duplicate $PropertyName value '$item'."
+        }
+    }
+
+    return @($SupportedValues | Where-Object { $seen.Contains($_) })
+}
+
+# 获取项目的 CI/CD 与项目类型属性
 function Get-EvaluatedProjectProperties {
     param(
         [Parameter(Mandatory)]
         [string] $ProjectPath
     )
 
-    # 临时移除 CICD 环境变量
-    $propertyNames = @('CICD', 'IsPackable', 'IsTestProject')
+    # 临时移除同名环境变量，避免外部环境改变项目发现结果
+    $propertyNames = @('CICD', 'IsPackable', 'IsTestProject') + $cicdMetadataPropertyNames
     $environmentValues = @{}
 
     try {
@@ -95,7 +139,8 @@ function Get-EvaluatedProjectProperties {
             }
         }
 
-        $output = @(& dotnet msbuild $ProjectPath -nologo '-getProperty:CICD,IsPackable,IsTestProject' 2>&1)
+        $requestedProperties = $propertyNames -join ','
+        $output = @(& dotnet msbuild $ProjectPath -nologo "-getProperty:$requestedProperties" 2>&1)
         $exitCode = $LASTEXITCODE
     }
     finally {
@@ -200,12 +245,85 @@ $projects = foreach ($projectFile in $projectFiles) {
     # 只要 IsPackable 不是 false，就视为可打包
     $isPackable = $properties.IsPackable -ne 'false'
 
+    $relativeProjectPath = Get-RelativePath $projectFile.FullName
+    $metadataValues = @{}
+
+    foreach ($propertyName in $cicdMetadataPropertyNames) {
+        $nodes = @($document.SelectNodes("//*[local-name()='$propertyName']"))
+        if ($nodes.Count -gt 1) {
+            throw "Project '$relativeProjectPath' has duplicate or conflicting $propertyName declarations."
+        }
+
+        $evaluatedValue = ([string] $properties.$propertyName).Trim()
+        if ($nodes.Count -eq 0) {
+            if (-not [string]::IsNullOrWhiteSpace($evaluatedValue)) {
+                throw "Project '$relativeProjectPath' evaluates $propertyName as '$evaluatedValue', but the property must be declared statically in the project file."
+            }
+
+            $metadataValues[$propertyName] = ''
+            continue
+        }
+
+        $node = $nodes[0]
+        if ($null -ne $node.SelectSingleNode('ancestor-or-self::*[@Condition]')) {
+            throw "Project '$relativeProjectPath' uses a conditional $propertyName declaration. CI/CD test metadata must be static."
+        }
+
+        $declaredValue = $node.InnerText.Trim()
+        if ($evaluatedValue -cne $declaredValue) {
+            throw "Project '$relativeProjectPath' evaluates $propertyName as '$evaluatedValue', but its project file declares '$declaredValue'."
+        }
+
+        $metadataValues[$propertyName] = $declaredValue
+    }
+
+    if (-not $isTestProject) {
+        foreach ($propertyName in $cicdMetadataPropertyNames) {
+            if (-not [string]::IsNullOrWhiteSpace($metadataValues[$propertyName])) {
+                throw "Project '$relativeProjectPath' declares $propertyName, but it is not a test project."
+            }
+        }
+    }
+
+    $operatingSystems = @()
+    $configurations = @()
+    $stage = $null
+
+    if ($isTestProject) {
+        $operatingSystems = @(ConvertTo-CICDValues `
+            -ProjectPath $relativeProjectPath `
+            -PropertyName 'CICDOperatingSystems' `
+            -Value $metadataValues.CICDOperatingSystems `
+            -DefaultValues @('linux') `
+            -SupportedValues $supportedOperatingSystems)
+        $configurations = @(ConvertTo-CICDValues `
+            -ProjectPath $relativeProjectPath `
+            -PropertyName 'CICDConfigurations' `
+            -Value $metadataValues.CICDConfigurations `
+            -DefaultValues @('Release') `
+            -SupportedValues $supportedConfigurations)
+        $stages = @(ConvertTo-CICDValues `
+            -ProjectPath $relativeProjectPath `
+            -PropertyName 'CICDStage' `
+            -Value $metadataValues.CICDStage `
+            -DefaultValues @('source') `
+            -SupportedValues $supportedStages)
+
+        if ($stages.Count -ne 1) {
+            throw "Project '$relativeProjectPath' must declare exactly one CICDStage."
+        }
+        $stage = $stages[0]
+    }
+
     # 输出规范化后的项目元数据
     [pscustomobject][ordered]@{
-        path           = Get-RelativePath $projectFile.FullName
-        cicd           = $groupName
-        isTestProject  = $isTestProject
-        isPackable     = $isPackable
+        path             = $relativeProjectPath
+        cicd             = $groupName
+        isTestProject    = $isTestProject
+        isPackable       = $isPackable
+        operatingSystems = @($operatingSystems)
+        configurations   = @($configurations)
+        stage             = $stage
     }
 }
 
@@ -229,6 +347,7 @@ $selectedGroupNames = if ($CICD) { @($CICD) } else { $groupNames }
 # 每个分组包含：
 # - projects：该分组下的所有项目
 # - testProjects：该分组下的测试项目
+# - testRuns：测试项目的操作系统、配置和阶段
 # - packableProjects：该分组下可打包的项目
 $groups = foreach ($groupName in $selectedGroupNames) {
     $groupProjects = @($projects | Where-Object cicd -eq $groupName)
@@ -237,10 +356,38 @@ $groups = foreach ($groupName in $selectedGroupNames) {
         continue
     }
 
+    $testRuns = @(
+        $groupProjects |
+            Where-Object isTestProject |
+            ForEach-Object {
+                [pscustomobject][ordered]@{
+                    path             = $_.path
+                    operatingSystems = @($_.operatingSystems)
+                    configurations   = @($_.configurations)
+                    stage            = $_.stage
+                }
+            }
+    )
+    $sourceOperatingSystemSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $packageOperatingSystemSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($testRun in $testRuns) {
+        foreach ($operatingSystem in $testRun.operatingSystems) {
+            if ($testRun.stage -eq 'package') {
+                $null = $packageOperatingSystemSet.Add($operatingSystem)
+            }
+            else {
+                $null = $sourceOperatingSystemSet.Add($operatingSystem)
+            }
+        }
+    }
+
     [pscustomobject][ordered]@{
         cicd             = $groupName
         projects         = @($groupProjects.path)
         testProjects     = @($groupProjects | Where-Object isTestProject | ForEach-Object path)
+        testRuns         = @($testRuns)
+        sourceOperatingSystems  = @($supportedOperatingSystems | Where-Object { $sourceOperatingSystemSet.Contains($_) })
+        packageOperatingSystems = @($supportedOperatingSystems | Where-Object { $packageOperatingSystemSet.Contains($_) })
         packableProjects = @($groupProjects | Where-Object isPackable | ForEach-Object path)
     }
 }
@@ -251,7 +398,7 @@ $result = [pscustomobject][ordered]@{
     groups           = @($groups)
     disabledProjects = @($disabledProjects)
 }
-$serialized = $result | ConvertTo-Json -Depth 5 -Compress:$Json
+$serialized = $result | ConvertTo-Json -Depth 7 -Compress:$Json
 
 # 写入可选的输出路径
 if ($OutputPath) {
@@ -282,7 +429,9 @@ else {
         "  Projects: $($group.projects.Count)"
         $group.projects | ForEach-Object { "    $_" }
         "  Test projects: $($group.testProjects.Count)"
-        $group.testProjects | ForEach-Object { "    $_" }
+        $group.testRuns | ForEach-Object {
+            "    $($_.path) [$($_.stage): $($_.operatingSystems -join ', ') / $($_.configurations -join ', ')]"
+        }
         "  Packable projects: $($group.packableProjects.Count)"
         $group.packableProjects | ForEach-Object { "    $_" }
     }

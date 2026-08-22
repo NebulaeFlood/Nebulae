@@ -7,10 +7,13 @@
 
 	<PropertyGroup>
 		<Description>A simple library to inline IL code.</Description>
-		<NoWarn>$(NoWarn);NU5100</NoWarn>
+		<!-- The package intentionally provides PackageReference-only ref assets without a lib counterpart. -->
+		<NoWarn>$(NoWarn);NU5100;NU5131</NoWarn>
+		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
 
 		<TargetsForTfmSpecificContentInPackage>
-			$(TargetsForTfmSpecificContentInPackage);_PackMSBuildTask
+			$(TargetsForTfmSpecificContentInPackage);_PackTfmSpecificContent
 		</TargetsForTfmSpecificContentInPackage>
 	</PropertyGroup>
 
@@ -28,18 +31,16 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="Assets\tasks\" />
-
-		<None Include="Assets\build\*" Pack="true" PackagePath="build" />
-		<None Include="Assets\buildMultiTargeting\*" Pack="true" PackagePath="buildMultiTargeting" />
+		<None Include="Properties\Nebulae.Runtime.Emit.Inline.Build.targets" Pack="true" PackagePath="build\Nebulae.Runtime.Emit.Inline.targets" />
+		<None Include="Properties\Nebulae.Runtime.Emit.Inline.BuildMultiTargeting.targets" Pack="true" PackagePath="buildMultiTargeting\Nebulae.Runtime.Emit.Inline.targets" />
 		<None Include="..\Nebulae.Runtime.Emit.Inline.Analyzers\bin\$(Configuration)\netstandard2.0\Nebulae.Runtime.Emit.Inline.Analyzers.dll" Pack="true" PackagePath="analyzers\dotnet\cs" Visible="false" />
 		<None Include="..\Nebulae.Runtime.Emit.Inline.Analyzers\bin\$(Configuration)\netstandard2.0\zh-CN\Nebulae.Runtime.Emit.Inline.Analyzers.resources.dll" Pack="true" PackagePath="analyzers\dotnet\cs\zh-CN" Visible="false" />
 	</ItemGroup>
 
-	<Import Project="..\..\Nebulae.Runtime.Emit.Inline\Nebulae.Runtime.Emit.Inline.projitems" Label="Shared" />
-
-	<Target Name="_PackMSBuildTask">
+	<Target Name="_PackTfmSpecificContent">
 		<ItemGroup>
+			<TfmSpecificPackageFile Include="$(TargetRefPath)" PackagePath="ref\$(TargetFramework)\$(TargetFileName)" />
+			<TfmSpecificPackageFile Include="$(DocumentationFile)" PackagePath="ref\$(TargetFramework)\$(TargetName).xml" />
 			<TfmSpecificPackageFile Include="..\Nebulae.Runtime.Emit.Inline.MSBuild\bin\$(Configuration)\$(TargetFramework)\*.dll" PackagePath="tasks\$(TargetFramework)" />
 		</ItemGroup>
 	</Target>

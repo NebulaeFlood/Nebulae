@@ -13,9 +13,9 @@ namespace Nebulae.Collections
     /// </summary>
     /// <typeparam name="T">元素类型</typeparam>
     /// <remarks>名称以 <c>Raw</c> 开头的方法不检查参数、索引、节点归属或集合状态，用方必须保证所有前置条件成立。</remarks>
-    [DebuggerDisplay("Count = {count}")]
-    [DebuggerTypeProxy(typeof(CollectionDebugView<>))]
-    public abstract class LinkedStorageBase<T> : IEnumerable<T>, ICollectionDebugView<T>
+    [DebuggerDisplay($"Count = {nameof(count)}")]
+    [DebuggerTypeProxy(typeof(CollectionHelpers.DebugView<>))]
+    public abstract class LinkedStorageBase<T> : IEnumerable<T>
     {
         //------------------------------------------------------
         //

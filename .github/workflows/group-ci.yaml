@@ -16,11 +16,101 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   BUILD_CONFIGURATION: Release
   PACKAGE_OUTPUT_DIR: ./artifacts/packages
+  PACKAGE_MANIFEST_PATH: ./artifacts/packages/package-manifest.json
   NUGET_PACKAGES: ${{ github.workspace }}/artifacts/nuget-packages
 
 jobs:
-  build-and-test:
-    name: Build and test ${{ inputs.cicd }}
+  discover:
+    name: Discover ${{ inputs.cicd }} CI plan
+    runs-on: ubuntu-latest
+    outputs:
+      source_operating_systems: ${{ steps.plan.outputs.source_operating_systems }}
+      package_operating_systems: ${{ steps.plan.outputs.package_operating_systems }}
+      has_source_stage: ${{ steps.plan.outputs.has_source_stage }}
+      has_package_stage: ${{ steps.plan.outputs.has_package_stage }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Discover projects and test plan
+        id: plan
+        shell: pwsh
+        env:
+          CICD_GROUP: ${{ inputs.cicd }}
+        run: |
+          $projectsFile = Join-Path $env:RUNNER_TEMP 'cicd-projects.json'
+          ./eng/workflows/Get-Projects.ps1 -CICD $env:CICD_GROUP -Json -OutputPath $projectsFile
+          $group = (Get-Content -LiteralPath $projectsFile -Raw | ConvertFrom-Json).groups[0]
+          $hasSourceStage = @($group.sourceOperatingSystems).Count -gt 0
+          $hasPackageStage = @($group.packageOperatingSystems).Count -gt 0
+          $sourceMatrix = @(if ($hasSourceStage) { $group.sourceOperatingSystems } else { 'linux' })
+          $packageMatrix = @(if ($hasPackageStage) { $group.packageOperatingSystems } else { 'linux' })
+          $sourceOperatingSystems = ConvertTo-Json -InputObject $sourceMatrix -Compress
+          $packageOperatingSystems = ConvertTo-Json -InputObject $packageMatrix -Compress
+          "source_operating_systems=$sourceOperatingSystems" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "package_operating_systems=$packageOperatingSystems" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "has_source_stage=$hasSourceStage".ToLowerInvariant() | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "has_package_stage=$hasPackageStage".ToLowerInvariant() | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+  source-test:
+    name: Source tests (${{ matrix.operating_system }})
+    needs: discover
+    if: needs.discover.outputs.has_source_stage == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: ${{ fromJSON(needs.discover.outputs.source_operating_systems) }}
+    runs-on: ${{ matrix.operating_system == 'windows' && 'windows-latest' || 'ubuntu-latest' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Discover projects
+        shell: pwsh
+        env:
+          CICD_GROUP: ${{ inputs.cicd }}
+        run: |
+          ./eng/workflows/Get-Projects.ps1 `
+            -CICD $env:CICD_GROUP `
+            -Json `
+            -OutputPath (Join-Path $env:RUNNER_TEMP 'cicd-projects.json')
+
+      - name: Build and run source-stage tests
+        shell: pwsh
+        env:
+          OPERATING_SYSTEM: ${{ matrix.operating_system }}
+        run: |
+          ./eng/workflows/Invoke-SourceTests.ps1 `
+            -OperatingSystem $env:OPERATING_SYSTEM `
+            -ProjectsJson (Join-Path $env:RUNNER_TEMP 'cicd-projects.json')
+
+  pack:
+    name: Pack candidate ${{ inputs.cicd }} package
+    needs: [discover, source-test]
+    if: >-
+      always() &&
+      needs.discover.outputs.has_package_stage == 'true' &&
+      (needs.source-test.result == 'success' || needs.source-test.result == 'skipped')
     runs-on: ubuntu-latest
 
     steps:
@@ -32,54 +122,122 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
       - name: Discover projects
         shell: pwsh
         env:
           CICD_GROUP: ${{ inputs.cicd }}
         run: |
-          $projectsFile = Join-Path $env:RUNNER_TEMP 'cicd-projects.json'
-          ./eng/workflows/Get-Projects.ps1 -CICD $env:CICD_GROUP -Json -OutputPath $projectsFile
+          ./eng/workflows/Get-Projects.ps1 `
+            -CICD $env:CICD_GROUP `
+            -Json `
+            -OutputPath (Join-Path $env:RUNNER_TEMP 'cicd-projects.json')
 
-      - name: Restore projects
+      - name: Restore and build projects
         shell: pwsh
         run: |
           $group = (Get-Content (Join-Path $env:RUNNER_TEMP 'cicd-projects.json') -Raw | ConvertFrom-Json).groups[0]
           foreach ($project in $group.projects) {
             dotnet restore $project
             if ($LASTEXITCODE -ne 0) { throw "Restore failed for '$project'." }
-          }
-
-      - name: Build projects
-        shell: pwsh
-        run: |
-          $group = (Get-Content (Join-Path $env:RUNNER_TEMP 'cicd-projects.json') -Raw | ConvertFrom-Json).groups[0]
-          foreach ($project in $group.projects) {
             dotnet build $project --configuration $env:BUILD_CONFIGURATION --no-restore -p:GeneratePackageOnBuild=false
             if ($LASTEXITCODE -ne 0) { throw "Build failed for '$project'." }
           }
 
-      - name: Test projects
+      - name: Pack projects
         shell: pwsh
+        env:
+          PACKAGE_VERSION: 0.0.0-ci.${{ github.run_id }}.${{ github.run_attempt }}
         run: |
           $group = (Get-Content (Join-Path $env:RUNNER_TEMP 'cicd-projects.json') -Raw | ConvertFrom-Json).groups[0]
-          foreach ($project in $group.testProjects) {
-            dotnet test $project --configuration $env:BUILD_CONFIGURATION --no-build --no-restore --verbosity normal
-            if ($LASTEXITCODE -ne 0) { throw "Tests failed for '$project'." }
+          New-Item -ItemType Directory -Path $env:PACKAGE_OUTPUT_DIR -Force | Out-Null
+          foreach ($project in $group.packableProjects) {
+            dotnet pack $project --configuration $env:BUILD_CONFIGURATION --no-build --output $env:PACKAGE_OUTPUT_DIR -p:PackageVersion=$env:PACKAGE_VERSION -p:GeneratePackageOnBuild=false
+            if ($LASTEXITCODE -ne 0) { throw "Pack failed for '$project'." }
           }
+          ./eng/workflows/New-PackageManifest.ps1 `
+            -ProjectsJson (Join-Path $env:RUNNER_TEMP 'cicd-projects.json') `
+            -PackageOutputDir $env:PACKAGE_OUTPUT_DIR `
+            -PackageVersion $env:PACKAGE_VERSION `
+            -OutputPath $env:PACKAGE_MANIFEST_PATH
 
-      - name: Run group CI hook
+      - name: Upload candidate packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.cicd }}-0.0.0-ci.${{ github.run_id }}.${{ github.run_attempt }}
+          path: |
+            ${{ env.PACKAGE_OUTPUT_DIR }}/*.nupkg
+            ${{ env.PACKAGE_OUTPUT_DIR }}/*.snupkg
+            ${{ env.PACKAGE_MANIFEST_PATH }}
+          if-no-files-found: error
+
+  package-test:
+    name: Package tests (${{ matrix.operating_system }})
+    needs: [discover, pack]
+    if: needs.pack.result == 'success' && needs.discover.outputs.has_package_stage == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: ${{ fromJSON(needs.discover.outputs.package_operating_systems) }}
+    runs-on: ${{ matrix.operating_system == 'windows' && 'windows-latest' || 'ubuntu-latest' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Discover projects
+        shell: pwsh
+        env:
+          CICD_GROUP: ${{ inputs.cicd }}
+        run: |
+          ./eng/workflows/Get-Projects.ps1 `
+            -CICD $env:CICD_GROUP `
+            -Json `
+            -OutputPath (Join-Path $env:RUNNER_TEMP 'cicd-projects.json')
+
+      - name: Download candidate packages
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.cicd }}-0.0.0-ci.${{ github.run_id }}.${{ github.run_attempt }}
+          path: ${{ env.PACKAGE_OUTPUT_DIR }}
+
+      - name: Verify candidate package manifest
         shell: pwsh
         env:
           CICD_GROUP: ${{ inputs.cicd }}
           PACKAGE_VERSION: 0.0.0-ci.${{ github.run_id }}.${{ github.run_attempt }}
         run: |
-          $hook = Join-Path 'eng/workflows' "$env:CICD_GROUP-ci.ps1"
-          if (Test-Path -LiteralPath $hook) {
-            & $hook `
-              -Configuration $env:BUILD_CONFIGURATION `
-              -ProjectsJson (Join-Path $env:RUNNER_TEMP 'cicd-projects.json') `
-              -PackageOutputDir $env:PACKAGE_OUTPUT_DIR `
-              -PackageVersion $env:PACKAGE_VERSION
+          ./eng/workflows/Test-PackageManifest.ps1 `
+            -PackageOutputDir $env:PACKAGE_OUTPUT_DIR `
+            -ManifestPath $env:PACKAGE_MANIFEST_PATH `
+            -ExpectedCICD $env:CICD_GROUP `
+            -ExpectedPackageVersion $env:PACKAGE_VERSION
+
+      - name: Run package-stage tests
+        shell: pwsh
+        env:
+          CICD_GROUP: ${{ inputs.cicd }}
+          OPERATING_SYSTEM: ${{ matrix.operating_system }}
+          PACKAGE_VERSION: 0.0.0-ci.${{ github.run_id }}.${{ github.run_attempt }}
+        run: |
+          $hook = Join-Path 'eng/workflows/hooks' "$env:CICD_GROUP-package.ps1"
+          if (-not (Test-Path -LiteralPath $hook -PathType Leaf)) {
+            throw "Group '$env:CICD_GROUP' declares package-stage tests but has no package hook '$hook'."
           }
+          & $hook `
+            -OperatingSystem $env:OPERATING_SYSTEM `
+            -ProjectsJson (Join-Path $env:RUNNER_TEMP 'cicd-projects.json') `
+            -PackageOutputDir $env:PACKAGE_OUTPUT_DIR `
+            -PackageVersion $env:PACKAGE_VERSION

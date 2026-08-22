@@ -40,7 +40,7 @@ namespace System.Diagnostics.CodeAnalysis
     /// 指明方法或属性返回指定值时，相关的字段或属性成员永远不会为 <see langword="null"/>
     /// </summary>
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
-    internal  sealed class MemberNotNullWhenAttribute : Attribute
+    internal sealed class MemberNotNullWhenAttribute : Attribute
     {
         /// <summary>
         /// 初始化 <see cref="MemberNotNullWhenAttribute"/> 的新实例

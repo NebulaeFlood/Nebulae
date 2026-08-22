@@ -16,9 +16,6 @@ namespace Nebulae.Collections.Concurrent
     /// <typeparam name="T">集合元素类型</typeparam>
     /// <remarks>
     /// <para>
-    /// <see cref="ConcurrentHashSet{T}"/> 的所有公共成员都是线程安全的。
-    /// </para>
-    /// <para>
     /// <see cref="ConcurrentHashSet{T}"/> 在枚举期间不会阻止其他线程对集合进行修改，因此枚举结果是弱一致的：
     /// 它可能观察到枚举开始后发生的部分修改，也可能不观察到这些修改；
     /// 枚举结果不保证是枚举器创建时的快照，也不保证反映集合的最新状态。
@@ -27,12 +24,12 @@ namespace Nebulae.Collections.Concurrent
     /// <see cref="ConcurrentHashSet{T}"/> 为了性能平衡，未实现 <see cref="ISet{T}"/> 接口。
     /// </para>
     /// <para>
-    /// <b><see cref="ConcurrentHashSet{T}"/> 不保证任何拓展方法的线程安全性。</b>
+    /// <b><see cref="ConcurrentHashSet{T}"/> 中的所有公共成员都是线程安全的。</b>
     /// </para>
     /// </remarks>
-    [DebuggerDisplay("Count = {Count}")]
-    [DebuggerTypeProxy(typeof(CollectionDebugView<>))]
-    public class ConcurrentHashSet<T> : ICollection<T>, IReadOnlyCollection<T>, ICollectionDebugView<T> where T : notnull
+    [DebuggerDisplay($"Count = {nameof(Count)}")]
+    [DebuggerTypeProxy(typeof(CollectionHelpers.DebugView<>))]
+    public class ConcurrentHashSet<T> : ICollection<T>, IReadOnlyCollection<T> where T : notnull
     {
         //------------------------------------------------------
         //
@@ -73,13 +70,11 @@ namespace Nebulae.Collections.Concurrent
             get
             {
                 object[] locks = _tables.Locks;
-
-                int locksCount = locks.Length;
                 int locksTaken = 0;
 
                 try
                 {
-                    for (; locksTaken < locksCount; locksTaken++)
+                    for (; locksTaken < locks.Length; locksTaken++)
                     {
                         Monitor.Enter(locks[locksTaken]);
                     }
@@ -116,11 +111,9 @@ namespace Nebulae.Collections.Concurrent
                 object[] locks = _tables.Locks;
                 int locksTaken = 0;
 
-                int count = locks.Length;
-
                 try
                 {
-                    for (; locksTaken < count; locksTaken++)
+                    for (; locksTaken < locks.Length; locksTaken++)
                     {
                         Monitor.Enter(locks[locksTaken]);
                     }
@@ -172,7 +165,7 @@ namespace Nebulae.Collections.Concurrent
             : this(Environment.ProcessorCount, items, locksIncreasable: true)
         {
             ThrowHelpers.ThrowIfArgumentNull(items);
-            Initailize(items);
+            Initialize(items);
         }
 
         /// <summary>
@@ -184,7 +177,7 @@ namespace Nebulae.Collections.Concurrent
             : this(Environment.ProcessorCount, items, locksIncreasable: true, comparer: comparer)
         {
             ThrowHelpers.ThrowIfArgumentNull(items);
-            Initailize(items);
+            Initialize(items);
         }
 
         /// <summary>
@@ -212,7 +205,7 @@ namespace Nebulae.Collections.Concurrent
             : this(concurrencyLevel, items, locksIncreasable: false, comparer: comparer)
         {
             ThrowHelpers.ThrowIfArgumentNull(items);
-            Initailize(items);
+            Initialize(items);
         }
 
         /// <summary>
@@ -234,7 +227,7 @@ namespace Nebulae.Collections.Concurrent
             : this(concurrencyLevel, capacity, locksIncreasable: false)
         {
             ThrowHelpers.ThrowIfArgumentNull(items);
-            Initailize(items);
+            Initialize(items);
         }
 
         /// <summary>
@@ -248,7 +241,7 @@ namespace Nebulae.Collections.Concurrent
             : this(concurrencyLevel, capacity, locksIncreasable: false, comparer: comparer)
         {
             ThrowHelpers.ThrowIfArgumentNull(items);
-            Initailize(items);
+            Initialize(items);
         }
 
         #endregion
@@ -267,7 +260,12 @@ namespace Nebulae.Collections.Concurrent
             ThrowHelpers.ThrowIfArgumentNotPositive(concurrencyLevel);
             ThrowHelpers.ThrowIfArgumentNull(items);
 
-            int capacity = items.Count();
+            int capacity = items switch
+            {
+                ICollection<T> collection => collection.Count,
+                IReadOnlyCollection<T> collection => collection.Count,
+                _ => DefaultCapacity,
+            };
 
             if (capacity < concurrencyLevel)
             {
@@ -738,16 +736,14 @@ namespace Nebulae.Collections.Concurrent
 
                 if (_lockIncreasable)
                 {
-                    int lockCount = CollectionHelpers.Grow(oldLockCount, MaxLockCount);
+                    Array.Resize(ref locks, CollectionHelpers.Grow(oldLockCount, MaxLockCount));
 
-                    Array.Resize(ref locks, lockCount);
-
-                    for (int i = oldLockCount; i < lockCount; i++)
+                    for (int i = oldLockCount; i < locks.Length; i++)
                     {
                         locks[i] = new object();
                     }
 
-                    if (lockCount == MaxLockCount)
+                    if (locks.Length == MaxLockCount)
                     {
                         // 锁的数量已经达到极限。
                         _lockIncreasable = false;
@@ -757,7 +753,7 @@ namespace Nebulae.Collections.Concurrent
                 uint[] lockReuseTimes = new uint[locks.Length];
                 var newBuckets = new VolatileWrapper<Node>[space];
 
-                // lockCount 为旧的锁数量，
+                // oldLockCount 为旧的锁数量，
                 // i > 0 以跳过第一个锁。
                 for (int i = oldLockCount - 1; i > 0; i--)
                 {
@@ -801,12 +797,13 @@ namespace Nebulae.Collections.Concurrent
             }
         }
 
-        private void Initailize(IEnumerable<T> items)
+        private void Initialize(IEnumerable<T> items)
         {
             IEqualityComparer<T>? comparer = _comparer;
             uint[] lockReuseTimes = _tables.LockReuseTimes;
 
-            IEnumerator<T> enumerator = items.GetEnumerator();
+            using IEnumerator<T> enumerator = items.GetEnumerator();
+
         Enumerate:
             if (enumerator.MoveNext())
             {

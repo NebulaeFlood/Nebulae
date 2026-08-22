@@ -10,9 +10,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)ArrayStorageBase.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)CollectionDebugView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CollectionHelpers.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Collector.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ValueCollector.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Concurrent\ConcurrentHashSet.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Concurrent\VolatileWrapper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HashHelpers.cs" />

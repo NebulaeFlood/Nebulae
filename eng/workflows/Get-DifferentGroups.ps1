@@ -406,9 +406,9 @@ foreach ($group in $discovery.groups) {
 $differences = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 
 foreach ($change in $changes) {
-    # group CI/CD hook
-    # 例如 eng/workflows/foo-ci.ps1 或 eng/workflows/foo-cd.ps1
-    $hookMatch = [regex]::Match($change.path, '^eng/workflows/(?<group>[a-z0-9-]+)-(ci|cd)\.ps1$')
+    # group package-stage hook
+    # 例如 eng/workflows/hooks/foo-package.ps1
+    $hookMatch = [regex]::Match($change.path, '^eng/workflows/hooks/(?<group>[a-z0-9-]+)-package\.ps1$')
 
     if ($hookMatch.Success) {
         $hookGroup = $hookMatch.Groups['group'].Value

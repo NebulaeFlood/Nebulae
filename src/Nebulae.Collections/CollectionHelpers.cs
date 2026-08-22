@@ -1,6 +1,9 @@
 using Nebulae.Diagnostics;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -38,7 +41,7 @@ namespace Nebulae.Collections
             }
 
             value = value < 4
-                ? (value | 0b11) << 1
+                ? (value | 0B01) << 1
                 : (int)MathF.Ceiling(value * GoldenRatio);
 
             return (uint)value > int.MaxValue ? int.MaxValue : value;
@@ -66,12 +69,28 @@ namespace Nebulae.Collections
             }
 
             value = value < 4
-                ? (value | 0b11) << 1
+                ? (value | 0B01) << 1
                 : (int)MathF.Ceiling(value * GoldenRatio);
 
             return (uint)value > maxValue ? maxValue : value;
         }
 
+
+        /// <summary>
+        /// 集合调试视图
+        /// </summary>
+        /// <typeparam name="T">集合元素类型</typeparam>
+        /// <param name="collection">目标集合</param>
+        public sealed class DebugView<T>(IEnumerable<T> collection)
+        {
+#pragma warning disable IDE0305
+            /// <summary>
+            /// 获取包含集合中元素的数组
+            /// </summary>
+            [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+            public T[] Items => collection.ToArray();
+#pragma warning restore IDE0305
+        }
 
         /// <summary>
         /// 集合异常抛出的工具类
@@ -85,9 +104,11 @@ namespace Nebulae.Collections
             /// <param name="capacity">集合的容量</param>
             [DoesNotReturn]
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void ThrowCapacityReachAbility(object? collection, int capacity)
+            public static void ThrowCapacityReachAbility(object collection, int capacity)
             {
-                throw new InvalidOperationException($"Capacity of collection '{collection.AsLog()}' has reached its maximum limit of '{capacity}'.");
+                throw new InvalidOperationException(
+                    $"Capacity of collection '{collection?.GetType().AsLog()}' " +
+                    $"has reached its maximum limit of '{capacity}'.");
             }
 
             /// <summary>
@@ -99,7 +120,8 @@ namespace Nebulae.Collections
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static void ThrowOperateEmptyCollection<T>([CallerMemberName] string operation = "Unknown")
             {
-                throw new InvalidOperationException($"Cannot perform '{operation}' on an empty collection of type '{typeof(T).AsLog()}'.");
+                throw new InvalidOperationException(
+                    $"Cannot perform '{operation}' on an empty collection of type '{typeof(T).AsLog()}'.");
             }
 
             /// <summary>
@@ -112,9 +134,12 @@ namespace Nebulae.Collections
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static void ThrowIfArrayNotLongEnough(int arrayIndex, int arrayLength, [CallerArgumentExpression(nameof(arrayIndex))] string? paramName = null)
             {
-                if (arrayIndex >= arrayLength)
+                if (arrayIndex > arrayLength)
                 {
-                    throw new ArgumentException($"Destination array was not long enough. The destination index was '{arrayIndex}' while the array's length was '{arrayLength}'.", paramName);
+                    throw new ArgumentException(
+                        $"Destination array was not long enough. " +
+                        $"The array's length was '{arrayLength}' " +
+                        $"while the destination index was '{arrayIndex}'.", paramName);
                 }
             }
 
@@ -131,7 +156,21 @@ namespace Nebulae.Collections
             {
                 if (arrayIndex + requiredLength > arrayLength)
                 {
-                    throw new ArgumentException($"Destination array was not long enough. The destination index was '{arrayIndex + requiredLength}' while the array's length was '{arrayLength}'.", paramName);
+                    if (arrayIndex is 0)
+                    {
+                        throw new ArgumentException(
+                            $"Destination array was not long enough. " +
+                            $"The array's length was '{arrayLength}' " +
+                            $"while the required length was '{requiredLength}'.", paramName);
+                    }
+                    else
+                    {
+                        throw new ArgumentException(
+                            $"Destination array was not long enough. " +
+                            $"The array's length was '{arrayLength}' " +
+                            $"while the required length was '{arrayIndex + requiredLength}' " +
+                            $"with the specified index '{arrayIndex}'.", paramName);
+                    }
                 }
             }
 
@@ -146,7 +185,10 @@ namespace Nebulae.Collections
             {
                 if (collectionCount < requiredCount)
                 {
-                    throw new ArgumentException($"Collection does not contain enough elements. The collection contains '{collectionCount}' elements while the required count is '{requiredCount}'.", paramName);
+                    throw new ArgumentException(
+                        $"Collection does not contain enough elements. " +
+                        $"The collection contains '{collectionCount}' elements " +
+                        $"while the required count is '{requiredCount}'.", paramName);
                 }
             }
 
@@ -162,7 +204,11 @@ namespace Nebulae.Collections
             {
                 if (collectionCount - index < requiredCount)
                 {
-                    throw new ArgumentException($"Collection does not contain enough elements. The collection contains '{collectionCount - index}' elements from the specified index '{index}' to the end while the required count is '{requiredCount}'.", paramName);
+                    throw new ArgumentException(
+                        $"Collection does not contain enough elements. " +
+                        $"The collection contains '{collectionCount - index}' elements " +
+                        $"from the specified index '{index}' to the end " +
+                        $"while the required count is '{requiredCount}'.", paramName);
                 }
             }
         }
@@ -184,7 +230,7 @@ namespace Nebulae.Collections
 #if NET5_0_OR_GREATER
                 return ref MemoryMarshal.GetArrayDataReference(array);
 #else
-                return ref MemoryMarshal.GetReference(new Span<T>(array));
+                return ref MemoryMarshal.GetReference(array);
 #endif
             }
 
@@ -202,7 +248,7 @@ namespace Nebulae.Collections
 #if NET5_0_OR_GREATER
                 return ref System.Runtime.CompilerServices.Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(array), index);
 #else
-                return ref System.Runtime.CompilerServices.Unsafe.Add(ref MemoryMarshal.GetReference(new Span<T>(array)), index);
+                return ref System.Runtime.CompilerServices.Unsafe.Add(ref MemoryMarshal.GetReference(array), index);
 #endif
             }
 
@@ -220,7 +266,7 @@ namespace Nebulae.Collections
 #if NET5_0_OR_GREATER
                 return ref System.Runtime.CompilerServices.Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(array), index);
 #else
-                return ref System.Runtime.CompilerServices.Unsafe.Add(ref MemoryMarshal.GetReference(new Span<T>(array)), index);
+                return ref System.Runtime.CompilerServices.Unsafe.Add(ref MemoryMarshal.GetReference(array), index);
 #endif
             }
         }
