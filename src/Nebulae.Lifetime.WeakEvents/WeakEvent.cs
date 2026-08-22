@@ -21,7 +21,7 @@ namespace Nebulae.Lifetime.WeakEvents
     /// 对于包含多个处理器的 <see cref="MulticastDelegate"/>，只会转换其中最后被添加的处理器。
     /// </para>
     /// <para>
-    /// <b>该类的所有公共成员都是线程安全的。</b>
+    /// <b>该<see cref="WeakEvent{TSender, TArgs}"/> 中的所有公共成员都是线程安全的。</b>
     /// </para>
     /// </remarks>
     /// <example>
@@ -34,7 +34,7 @@ namespace Nebulae.Lifetime.WeakEvents
     ///        remove { _exampleEvent.Unsubscribe(value); }
     ///     }
     ///
-    ///    public event EventHandler<EventArgs> ExampleEvent2
+    ///    public event EventHandler<object, EventArgs> ExampleEvent2
     ///    {
     ///        add { _exampleEvent += value; }
     ///        remove { _exampleEvent -= value; }
@@ -47,6 +47,12 @@ namespace Nebulae.Lifetime.WeakEvents
         where TArgs : allows ref struct
 #endif
     {
+#if NET7_0_OR_GREATER
+        private const string AotMessage =
+            "Weak-event subscription constructs delegates from runtime method pointers " +
+            "and is not supported by NativeAOT.";
+#endif
+
         /// <summary>
         /// 初始化 <see cref="WeakEvent{TSender, TArgs}"/> 的新实例
         /// </summary>
@@ -81,6 +87,9 @@ namespace Nebulae.Lifetime.WeakEvents
         /// 订阅事件处理器
         /// </summary>
         /// <param name="handler">要订阅的处理器</param>
+#if NET7_0_OR_GREATER
+        [RequiresDynamicCode(AotMessage)]
+#endif
         public void Subscribe(EventHandler<TSender, TArgs> handler)
         {
             ThrowHelpers.ThrowIfArgumentNull(handler);
@@ -91,6 +100,9 @@ namespace Nebulae.Lifetime.WeakEvents
         /// 订阅事件处理器
         /// </summary>
         /// <param name="handler">要订阅的处理器</param>
+#if NET7_0_OR_GREATER
+        [RequiresDynamicCode(AotMessage)]
+#endif
         public void Subscribe(Delegate handler)
         {
             ThrowHelpers.ThrowIfArgumentNull(handler);
@@ -263,7 +275,7 @@ namespace Nebulae.Lifetime.WeakEvents
             int count = 0;
             bool removed = false;
 
-            for (var current = observed.Head; current is not null; current= current.Next)
+            for (var current = observed.Head; current is not null; current = current.Next)
             {
                 WeakEventHandler<TSender, TArgs> handler = current.Handler;
 
@@ -321,6 +333,9 @@ namespace Nebulae.Lifetime.WeakEvents
         /// <param name="event">目标弱事件</param>
         /// <param name="handler">要添加的处理器</param>
         /// <returns>添加处理器后的 <paramref name="event"/>。</returns>
+#if NET7_0_OR_GREATER
+        [RequiresDynamicCode(AotMessage)]
+#endif
         public static WeakEvent<TSender, TArgs> operator +(
             WeakEvent<TSender, TArgs> @event,
             EventHandler<TSender, TArgs> handler)
@@ -338,6 +353,9 @@ namespace Nebulae.Lifetime.WeakEvents
         /// <param name="event">目标弱事件</param>
         /// <param name="handler">要添加的处理器</param>
         /// <returns>添加处理器后的 <paramref name="event"/>。</returns>
+#if NET7_0_OR_GREATER
+        [RequiresDynamicCode(AotMessage)]
+#endif
         public static WeakEvent<TSender, TArgs> operator +(
             WeakEvent<TSender, TArgs> @event,
             Delegate handler)

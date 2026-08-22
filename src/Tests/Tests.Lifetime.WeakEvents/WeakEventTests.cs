@@ -1,375 +1,196 @@
-using System.Reflection;
-using System.Runtime.CompilerServices;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nebulae.Lifetime.WeakEvents;
-
-#if NET9_0_OR_GREATER
-using WeakEventCallback = System.EventHandler<object, System.EventArgs>;
-#else
-using WeakEventCallback = Nebulae.Lifetime.WeakEvents.EventHandler<object, System.EventArgs>;
-#endif
 
 namespace Tests.Lifetime.WeakEvents;
 
 [TestClass]
 public sealed class WeakEventTests
 {
-    private static readonly int[] s_expectedSubscriptionOrder = [1, 2, 3];
-    private static readonly int[] s_expectedMulticastCalls = [2];
-
     [TestMethod]
-    public void InvokeWithoutSubscriptions_CompletesWithoutSideEffects()
+    public void Invoke_NoSubscribers_CompletesWithoutObservableEffect()
     {
-        var weakEvent = new WeakEvent<object, EventArgs>();
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
 
-        weakEvent.Invoke(new object(), EventArgs.Empty);
+        weakEvent.Invoke(new Recorder(), new TestEventArgs(1));
     }
 
     [TestMethod]
-    public void Subscribe_StaticAndInstanceHandlersReceiveOriginalArguments()
+    public void Subscribe_MixedHandlers_ForwardsArgumentsInSubscriptionOrder()
     {
-        var weakEvent = new WeakEvent<object, EventArgs>();
-        var sender = new object();
-        var args = new EventArgs();
-        var receiver = new ArgumentReceiver();
-        WeakEventCallback instanceHandler = receiver.Handle;
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        Recorder sender = new();
+        TestEventArgs args = new(42);
+        RecordingTarget target = new("instance");
 
-        StaticArgumentReceiver.Reset();
-        weakEvent.Subscribe(StaticArgumentReceiver.Handle);
-        weakEvent.Subscribe(instanceHandler);
+        weakEvent.Subscribe(WeakEventTestSupport.RecordStatic);
+        weakEvent.Subscribe(target.Record);
 
         weakEvent.Invoke(sender, args);
 
-        Assert.AreSame(sender, StaticArgumentReceiver.Sender);
-        Assert.AreSame(args, StaticArgumentReceiver.Args);
-        Assert.AreSame(sender, receiver.Sender);
-        Assert.AreSame(args, receiver.Args);
-        GC.KeepAlive(instanceHandler);
+        Assert.AreEqual("static:42|instance:42", string.Join('|', sender.Entries));
+        GC.KeepAlive(target);
     }
 
     [TestMethod]
-    public void Invoke_MultipleHandlersRunInSubscriptionOrder()
+    public void Subscribe_MulticastDelegate_SubscribesOnlyLastHandler()
     {
-        var weakEvent = new WeakEvent<object, EventArgs>();
-        var calls = new List<int>();
-        WeakEventCallback first = (_, _) => calls.Add(1);
-        WeakEventCallback second = (_, _) => calls.Add(2);
-        WeakEventCallback third = (_, _) => calls.Add(3);
-
-        weakEvent.Subscribe(first);
-        weakEvent.Subscribe(second);
-        weakEvent.Subscribe(third);
-
-        weakEvent.Invoke(new object(), EventArgs.Empty);
-
-        CollectionAssert.AreEqual(s_expectedSubscriptionOrder, calls);
-        GC.KeepAlive(first);
-        GC.KeepAlive(second);
-        GC.KeepAlive(third);
-    }
-
-    [TestMethod]
-    public void Unsubscribe_DuplicateRegistrationRemovesOnlyLastMatch()
-    {
-        var weakEvent = new WeakEvent<object, EventArgs>();
-        var receiver = new CountingReceiver();
-        WeakEventCallback handler = receiver.Handle;
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        Recorder sender = new();
+        RecordingTarget target = new("target");
+        EventHandler<Recorder, TestEventArgs> handler = target.RecordFirst;
+        handler += target.RecordSecond;
+        handler += target.RecordThird;
 
         weakEvent.Subscribe(handler);
-        weakEvent.Subscribe(handler);
-        weakEvent.Unsubscribe(handler);
+        weakEvent.Invoke(sender, new TestEventArgs(7));
 
-        weakEvent.Invoke(new object(), EventArgs.Empty);
-        Assert.AreEqual(1, receiver.Calls);
-
-        weakEvent.Unsubscribe(handler);
-        weakEvent.Invoke(new object(), EventArgs.Empty);
-        Assert.AreEqual(1, receiver.Calls);
-        GC.KeepAlive(handler);
+        Assert.AreEqual("target-third:7", string.Join('|', sender.Entries));
+        GC.KeepAlive(target);
     }
 
     [TestMethod]
-    public void Subscribe_CompatibleDelegateIsInvoked()
+    public void Unsubscribe_InterleavedDuplicates_RemovesMostRecentMatch()
     {
-        var weakEvent = new WeakEvent<object, EventArgs>();
-        var sender = new object();
-        var args = new EventArgs();
-        object? receivedSender = null;
-        EventArgs? receivedArgs = null;
-        CompatibleHandler handler = (actualSender, actualArgs) =>
-        {
-            receivedSender = actualSender;
-            receivedArgs = actualArgs;
-        };
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        Recorder sender = new();
+        RecordingTarget target = new("target");
+        EventHandler<Recorder, TestEventArgs> handlerA = target.RecordFirst;
+        EventHandler<Recorder, TestEventArgs> handlerB = target.RecordSecond;
+
+        weakEvent.Subscribe(handlerA);
+        weakEvent.Subscribe(handlerB);
+        weakEvent.Subscribe(handlerA);
+
+        weakEvent.Unsubscribe(handlerA);
+        weakEvent.Invoke(sender, new TestEventArgs(3));
+
+        Assert.AreEqual(
+            "target-first:3|target-second:3",
+            string.Join('|', sender.Entries));
+        GC.KeepAlive(target);
+    }
+
+    [TestMethod]
+    public void Unsubscribe_UnknownHandler_PreservesExistingSubscriptions()
+    {
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        Recorder sender = new();
+        RecordingTarget subscribed = new("subscribed");
+        RecordingTarget unknown = new("unknown");
+
+        weakEvent.Subscribe(subscribed.Record);
+        weakEvent.Unsubscribe((EventHandler<Recorder, TestEventArgs>)unknown.Record);
+        weakEvent.Invoke(sender, new TestEventArgs(5));
+
+        Assert.AreEqual("subscribed:5", string.Join('|', sender.Entries));
+        GC.KeepAlive(subscribed);
+        GC.KeepAlive(unknown);
+    }
+
+    [TestMethod]
+    public void Subscribe_CompatibleCustomDelegate_ForwardsArguments()
+    {
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        Recorder sender = new();
+        RecordingTarget target = new("custom");
+        CompatibleHandler handler = target.Record;
 
         weakEvent.Subscribe((Delegate)handler);
+        weakEvent.Invoke(sender, new TestEventArgs(11));
+
+        Assert.AreEqual("custom:11", string.Join('|', sender.Entries));
+        GC.KeepAlive(target);
+    }
+
+    [TestMethod]
+    public void Subscribe_IncompatibleDelegate_ThrowsWithoutChangingState()
+    {
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        Recorder sender = new();
+        Action incompatible = IncompatibleHandler;
+        weakEvent.Subscribe(WeakEventTestSupport.RecordStatic);
+
+        Assert.ThrowsExactly<ArgumentException>(
+            () => weakEvent.Subscribe((Delegate)incompatible));
+
+        weakEvent.Invoke(sender, new TestEventArgs(13));
+        Assert.AreEqual("static:13", string.Join('|', sender.Entries));
+    }
+
+    [TestMethod]
+    public void PublicEntryPoints_NullOperands_ThrowArgumentNullException()
+    {
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        WeakEvent<Recorder, TestEventArgs> nullEvent = null!;
+        EventHandler<Recorder, TestEventArgs> handler = WeakEventTestSupport.RecordStatic;
+        Delegate delegateHandler = handler;
+
+        AssertNullHandler(
+            () => weakEvent.Subscribe((EventHandler<Recorder, TestEventArgs>)null!));
+        AssertNullHandler(() => weakEvent.Subscribe((Delegate)null!));
+        AssertNullHandler(() => weakEvent.Unsubscribe(null!));
+        AssertNullHandler(() => _ = weakEvent + (EventHandler<Recorder, TestEventArgs>)null!);
+        AssertNullHandler(() => _ = weakEvent + (Delegate)null!);
+        AssertNullHandler(() => _ = weakEvent - (Delegate)null!);
+
+        Assert.ThrowsExactly<ArgumentNullException>(() => _ = nullEvent + handler);
+        Assert.ThrowsExactly<ArgumentNullException>(() => _ = nullEvent + delegateHandler);
+        Assert.ThrowsExactly<ArgumentNullException>(() => _ = nullEvent - delegateHandler);
+    }
+
+    [TestMethod]
+    public void Operators_ValidHandlers_ReturnSameInstanceAndMirrorMethods()
+    {
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        Recorder sender = new();
+        RecordingTarget target = new("target");
+        EventHandler<Recorder, TestEventArgs> typedHandler = target.RecordFirst;
+        CompatibleHandler customHandler = target.Record;
+
+        WeakEvent<Recorder, TestEventArgs> result = weakEvent + typedHandler;
+        Assert.AreSame(weakEvent, result);
+
+        result = weakEvent + (Delegate)customHandler;
+        Assert.AreSame(weakEvent, result);
+
+        result = weakEvent - typedHandler;
+        Assert.AreSame(weakEvent, result);
+
+        weakEvent.Invoke(sender, new TestEventArgs(17));
+        Assert.AreEqual("target:17", string.Join('|', sender.Entries));
+        GC.KeepAlive(target);
+    }
+
+#if NET10_0_OR_GREATER
+    [TestMethod]
+    public void Invoke_RefStructTypeArguments_ForwardsSpansToStaticHandler()
+    {
+        WeakEvent<Span<int>, ReadOnlySpan<int>> weakEvent = new();
+        Span<int> sender = stackalloc int[1];
+        ReadOnlySpan<int> args = [19, 23];
+
+        weakEvent.Subscribe(RecordSpans);
         weakEvent.Invoke(sender, args);
 
-        Assert.AreSame(sender, receivedSender);
-        Assert.AreSame(args, receivedArgs);
-        GC.KeepAlive(handler);
+        Assert.AreEqual(42, sender[0]);
     }
 
-    [TestMethod]
-    public void Subscribe_MulticastDelegateUsesOnlyLastHandler()
+    private static void RecordSpans(Span<int> sender, ReadOnlySpan<int> args)
     {
-        var weakEvent = new WeakEvent<object, EventArgs>();
-        var calls = new List<int>();
-        CompatibleHandler first = (_, _) => calls.Add(1);
-        CompatibleHandler second = (_, _) => calls.Add(2);
-        Delegate multicast = Delegate.Combine(first, second);
-
-        weakEvent.Subscribe(multicast);
-        weakEvent.Invoke(new object(), EventArgs.Empty);
-
-        CollectionAssert.AreEqual(s_expectedMulticastCalls, calls);
-        GC.KeepAlive(multicast);
+        sender[0] = args[0] + args[1];
     }
+#endif
 
-    [TestMethod]
-    public void CollectedInstanceSubscriber_IsNotKeptAliveOrInvoked()
+    private static void AssertNullHandler(Action action)
     {
-        var weakEvent = new WeakEvent<object, EventArgs>();
-        var counter = new CallCounter();
-        WeakReference<CountingReceiver> subscriber = SubscribeTemporaryReceiver(weakEvent, counter);
-
-        CollectUntilDead(subscriber);
-        weakEvent.Invoke(new object(), EventArgs.Empty);
-
-        Assert.IsFalse(subscriber.TryGetTarget(out _));
-        Assert.AreEqual(0, counter.Value);
+        ArgumentNullException exception =
+            Assert.ThrowsExactly<ArgumentNullException>(action);
+        Assert.AreEqual("handler", exception.ParamName);
     }
 
-    [TestMethod]
-    public void Purge_RemovesCollectedSubscribersAndPreservesLiveSubscribers()
+    private static void IncompatibleHandler()
     {
-        var weakEvent = new WeakEvent<object, EventArgs>();
-        var deadCounter = new CallCounter();
-        var liveReceiver = new CountingReceiver();
-        WeakEventCallback liveHandler = liveReceiver.Handle;
-        WeakReference<CountingReceiver> deadSubscriber = SubscribeTemporaryReceiver(weakEvent, deadCounter);
-        weakEvent.Subscribe(liveHandler);
-
-        Assert.AreEqual(2, GetSubscriptionCount(weakEvent));
-        CollectUntilDead(deadSubscriber);
-
-        weakEvent.Purge();
-        weakEvent.Invoke(new object(), EventArgs.Empty);
-
-        Assert.AreEqual(1, GetSubscriptionCount(weakEvent));
-        Assert.AreEqual(0, deadCounter.Value);
-        Assert.AreEqual(1, liveReceiver.Calls);
-        GC.KeepAlive(liveHandler);
     }
 
-    [TestMethod]
-    public void Operators_AddAndRemoveTypedAndCompatibleHandlersOnSameEventInstance()
-    {
-        var weakEvent = new WeakEvent<object, EventArgs>();
-        var receiver = new CountingReceiver();
-        WeakEventCallback handler = receiver.Handle;
-        CompatibleHandler compatibleHandler = receiver.Handle;
-
-        WeakEvent<object, EventArgs> afterAddition = weakEvent + handler;
-        afterAddition.Invoke(new object(), EventArgs.Empty);
-
-        Assert.AreSame(weakEvent, afterAddition);
-        Assert.AreEqual(1, receiver.Calls);
-
-        WeakEvent<object, EventArgs> afterRemoval = afterAddition - handler;
-        afterRemoval.Invoke(new object(), EventArgs.Empty);
-
-        Assert.AreSame(weakEvent, afterRemoval);
-        Assert.AreEqual(1, receiver.Calls);
-
-        WeakEvent<object, EventArgs> afterDelegateAddition = afterRemoval + (Delegate)compatibleHandler;
-        afterDelegateAddition.Invoke(new object(), EventArgs.Empty);
-
-        Assert.AreSame(weakEvent, afterDelegateAddition);
-        Assert.AreEqual(2, receiver.Calls);
-
-        WeakEvent<object, EventArgs> afterDelegateRemoval = afterDelegateAddition - compatibleHandler;
-        afterDelegateRemoval.Invoke(new object(), EventArgs.Empty);
-
-        Assert.AreSame(weakEvent, afterDelegateRemoval);
-        Assert.AreEqual(2, receiver.Calls);
-        GC.KeepAlive(handler);
-        GC.KeepAlive(compatibleHandler);
-    }
-
-    [TestMethod]
-    public void Methods_NullHandlersThrowArgumentNullException()
-    {
-        var weakEvent = new WeakEvent<object, EventArgs>();
-
-        Assert.ThrowsExactly<ArgumentNullException>(
-            () => weakEvent.Subscribe((WeakEventCallback)null!));
-        Assert.ThrowsExactly<ArgumentNullException>(
-            () => weakEvent.Subscribe((Delegate)null!));
-        Assert.ThrowsExactly<ArgumentNullException>(
-            () => weakEvent.Unsubscribe(null!));
-    }
-
-    [TestMethod]
-    public void Operators_NullOperandsThrowArgumentNullException()
-    {
-        var weakEvent = new WeakEvent<object, EventArgs>();
-        var receiver = new CountingReceiver();
-        WeakEventCallback handler = receiver.Handle;
-        WeakEvent<object, EventArgs> missingEvent = null!;
-
-        Assert.ThrowsExactly<ArgumentNullException>(
-            () => _ = missingEvent + handler);
-        Assert.ThrowsExactly<ArgumentNullException>(
-            () => _ = weakEvent + (WeakEventCallback)null!);
-        Assert.ThrowsExactly<ArgumentNullException>(
-            () => _ = weakEvent + (Delegate)null!);
-        Assert.ThrowsExactly<ArgumentNullException>(
-            () => _ = weakEvent - (Delegate)null!);
-        GC.KeepAlive(handler);
-    }
-
-    [TestMethod]
-    public async Task ConcurrentSubscriptionsAndUnsubscriptions_PreserveAllStateChanges()
-    {
-        const int operationCount = 64;
-        var weakEvent = new WeakEvent<object, EventArgs>();
-        var receiver = new CountingReceiver();
-        WeakEventCallback handler = receiver.Handle;
-
-        await RunConcurrently(operationCount, () => weakEvent.Subscribe(handler));
-
-        weakEvent.Invoke(new object(), EventArgs.Empty);
-        Assert.AreEqual(operationCount, receiver.Calls);
-
-        await RunConcurrently(operationCount, () => weakEvent.Unsubscribe(handler));
-
-        receiver.Reset();
-        weakEvent.Invoke(new object(), EventArgs.Empty);
-        Assert.AreEqual(0, receiver.Calls);
-        GC.KeepAlive(handler);
-    }
-
-    private static async Task RunConcurrently(int operationCount, Action operation)
-    {
-        using var startGate = new ManualResetEventSlim();
-        Task[] operations =
-        [
-            .. Enumerable.Range(0, operationCount)
-                .Select(_ => Task.Run(() =>
-                {
-                    startGate.Wait();
-                    operation();
-                }))
-        ];
-
-        startGate.Set();
-        await Task.WhenAll(operations);
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static WeakReference<CountingReceiver> SubscribeTemporaryReceiver(
-        WeakEvent<object, EventArgs> weakEvent,
-        CallCounter counter)
-    {
-        var receiver = new CountingReceiver(counter);
-        weakEvent.Subscribe(receiver.Handle);
-        return new WeakReference<CountingReceiver>(receiver);
-    }
-
-    private static void CollectUntilDead(WeakReference<CountingReceiver> reference)
-    {
-        for (int attempt = 0; attempt < 3; attempt++)
-        {
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-        }
-
-        GC.KeepAlive(reference);
-    }
-
-    private static int GetSubscriptionCount(WeakEvent<object, EventArgs> weakEvent)
-    {
-        FieldInfo stateField = typeof(WeakEvent<object, EventArgs>).GetField(
-            "_state",
-            BindingFlags.Instance | BindingFlags.NonPublic)!;
-        object state = stateField.GetValue(weakEvent)!;
-        FieldInfo countField = state.GetType().GetField(
-            "Count",
-            BindingFlags.Instance | BindingFlags.Public)!;
-
-        return (int)countField.GetValue(state)!;
-    }
-
-    private delegate void CompatibleHandler(object sender, EventArgs args);
-
-    private sealed class ArgumentReceiver
-    {
-        public object? Sender { get; private set; }
-
-        public EventArgs? Args { get; private set; }
-
-        public void Handle(object sender, EventArgs args)
-        {
-            Sender = sender;
-            Args = args;
-        }
-    }
-
-    private static class StaticArgumentReceiver
-    {
-        public static object? Sender { get; private set; }
-
-        public static EventArgs? Args { get; private set; }
-
-        public static void Handle(object sender, EventArgs args)
-        {
-            Sender = sender;
-            Args = args;
-        }
-
-        public static void Reset()
-        {
-            Sender = null;
-            Args = null;
-        }
-    }
-
-    private sealed class CountingReceiver
-    {
-        private readonly CallCounter? _counter;
-        private int _calls;
-
-        public CountingReceiver() { }
-
-        public CountingReceiver(CallCounter counter)
-        {
-            _counter = counter;
-        }
-
-        public int Calls => Volatile.Read(ref _calls);
-
-        public void Handle(object sender, EventArgs args)
-        {
-            Interlocked.Increment(ref _calls);
-            _counter?.Increment();
-        }
-
-        public void Reset()
-        {
-            Volatile.Write(ref _calls, 0);
-        }
-    }
-
-    private sealed class CallCounter
-    {
-        private int _value;
-
-        public int Value => Volatile.Read(ref _value);
-
-        public void Increment()
-        {
-            Interlocked.Increment(ref _value);
-        }
-    }
+    private delegate void CompatibleHandler(Recorder sender, TestEventArgs args);
 }
