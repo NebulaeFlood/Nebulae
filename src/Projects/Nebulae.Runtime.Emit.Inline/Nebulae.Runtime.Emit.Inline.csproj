@@ -11,6 +11,7 @@
 		<NoWarn>$(NoWarn);NU5100;NU5131</NoWarn>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<IncludeSymbols>false</IncludeSymbols>
 
 		<TargetsForTfmSpecificContentInPackage>
 			$(TargetsForTfmSpecificContentInPackage);_PackTfmSpecificContent
