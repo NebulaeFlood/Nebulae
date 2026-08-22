@@ -5,7 +5,6 @@ using Nebulae.Collections;
 using Nebulae.Runtime.Emit.Inline.MSBuild.Helpers;
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace Nebulae.Runtime.Emit.Inline.MSBuild.Rewrite
 {
@@ -290,7 +289,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Rewrite
             // so the next instruction is always not elided
             // and does not need to update _labelMaps.
             Instruction? replacement = instruction.Next;
-            HashSet <Instruction> sources = map.Sources;
+            HashSet<Instruction> sources = map.Sources;
 
             if (sources.Count is not 0)
             {

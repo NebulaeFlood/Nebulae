@@ -1,9 +1,7 @@
 using Nebulae.Diagnostics;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Nebulae.Lifetime.WeakEvents

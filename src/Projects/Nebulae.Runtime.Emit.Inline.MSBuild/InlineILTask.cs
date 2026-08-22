@@ -1,10 +1,7 @@
 using Microsoft.Build.Framework;
-using Mono.Cecil;
 using Nebulae.Runtime.Emit.Inline.MSBuild.Helpers;
 using Nebulae.Runtime.Emit.Inline.MSBuild.Rewrite;
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 
 namespace Nebulae.Runtime.Emit.Inline.MSBuild

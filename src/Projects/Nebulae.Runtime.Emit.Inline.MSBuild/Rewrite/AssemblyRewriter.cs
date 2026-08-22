@@ -3,11 +3,9 @@ using Microsoft.Build.Utilities;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Nebulae.Runtime.Emit.Inline.MSBuild.Helpers;
-using Nebulae.Runtime.Emit.Inline.MSBuild.Import;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 namespace Nebulae.Runtime.Emit.Inline.MSBuild.Rewrite
 {
