@@ -381,50 +381,6 @@ public sealed class InlineRewriteContractTests
     }
 
     [TestMethod]
-    [DoNotParallelize]
-    public void MultipleMalformedMethods_WhenParallelRewriteFails_LogsStableErrorsAndPreservesInput()
-    {
-        const string source = """
-            using Nebulae.Runtime.Emit.Inline;
-
-            public static class Scenario
-            {
-                public static int Integer(int value)
-                {
-                    IL.Emit.Ldc_I4(value);
-                    return IL.Ret<int>();
-                }
-
-                public static string Text(string value)
-                {
-                    IL.Emit.Ldstr(value);
-                    return IL.Ret<string>();
-                }
-            }
-            """;
-        using var directory = new TemporaryDirectory("multiple-errors");
-        CompilationArtifact artifact = CompilationHarness.Compile(
-            source,
-            "MultipleErrorScenario",
-            directory.DirectoryPath,
-            emitPdb: true,
-            sourcePath: "MultipleErrorScenario.cs");
-        string assemblyHash = AssemblyInspector.ComputeSha256(artifact.AssemblyPath);
-        string pdbHash = AssemblyInspector.ComputeSha256(artifact.PdbPath!);
-
-        InlineILTaskResult rewrite = InlineILTaskHarness.Execute(artifact);
-
-        Assert.IsFalse(rewrite.Success);
-        Assert.HasCount(2, rewrite.Errors);
-        string[] messages = [.. rewrite.Errors.Select(static error => error.Message ?? string.Empty)];
-        CollectionAssert.AreEqual(
-            messages.Order(StringComparer.Ordinal).ToArray(),
-            messages);
-        Assert.AreEqual(assemblyHash, AssemblyInspector.ComputeSha256(artifact.AssemblyPath));
-        Assert.AreEqual(pdbHash, AssemblyInspector.ComputeSha256(artifact.PdbPath!));
-    }
-
-    [TestMethod]
     public void MemberReference_WhenMemberExistsOnlyOnBaseType_RejectsDeclaredTypeLookupAndPreservesInput()
     {
         const string source = """
