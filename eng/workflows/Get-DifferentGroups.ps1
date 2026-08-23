@@ -164,8 +164,7 @@ else {
 
         if ($status -match '^[RC]') {
             # rename 或 copy 会改变旧路径和新路径之间的输入关系。
-            # 为了安全，把旧路径视为删除，新路径视为新增。
-            # 后续遇到删除会直接跑全部 group。
+            # 把旧路径视为删除、新路径视为新增，让两侧分别参与输入规则匹配。
             $changes.Add([pscustomobject]@{
                 status = 'D'
                 path   = ConvertTo-RepositoryPath $parts[1]
@@ -189,13 +188,6 @@ else {
 # 如果没有任何变更，返回空数组
 if ($changes.Count -eq 0) {
     Write-Result @()
-    exit 0
-}
-
-# 只要存在删除，就跑全部 group
-# 删除可能移除了某个项目 Import、ProjectReference 或共享文件，很难p判断是否只影响单个 group
-if ($null -ne ($changes | Where-Object { $_.status -match '^D' } | Select-Object -First 1)) {
-    Write-Result $allGroups
     exit 0
 }
 
@@ -347,6 +339,13 @@ foreach ($group in $discovery.groups) {
                     }
 
                     $null = $exactInputs.Add($resolvedImport)
+
+                    # .projitems 表示一个共享项目。
+                    # 记录其所在目录，这样即使其中的某个源文件被移除，也能根据目录路径追溯该文件的归属。
+                    if ([IO.Path]::GetExtension($resolvedImport).Equals('.projitems', [StringComparison]::OrdinalIgnoreCase)) {
+                        $importDirectory = Split-Path -Parent $resolvedImport
+                        $null = $inputDirectories.Add($importDirectory.Replace('\', '/').TrimEnd('/') + '/')
+                    }
 
                     $filesToInspect.Enqueue([pscustomobject]@{
                         path             = Join-Path $repositoryRoot $resolvedImport
