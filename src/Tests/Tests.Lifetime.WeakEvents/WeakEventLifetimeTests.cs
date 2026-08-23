@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nebulae.Lifetime.WeakEvents;
 using System.Runtime.CompilerServices;
 
@@ -48,6 +47,24 @@ public sealed class WeakEventLifetimeTests
         GC.KeepAlive(afterPurge);
     }
 
+    [TestMethod]
+    public void MulticastDelegate_CollectedTargetIsNotRootedAndLiveHandlerRemainsCallable()
+    {
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        Recorder sender = new();
+        RecordingTarget live = new("live");
+        WeakReference collected = SubscribeMulticastWithTemporaryTarget(
+            weakEvent,
+            live);
+
+        CollectUntilDead(collected);
+        weakEvent.Invoke(sender, new TestEventArgs(37));
+
+        Assert.IsFalse(collected.IsAlive);
+        Assert.AreEqual("live:37", string.Join('|', sender.Entries));
+        GC.KeepAlive(live);
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     internal static WeakReference SubscribeTemporaryTarget(
         WeakEvent<Recorder, TestEventArgs> weakEvent,
@@ -56,6 +73,18 @@ public sealed class WeakEventLifetimeTests
         RecordingTarget target = new(name);
         weakEvent.Subscribe(target.Record);
         return new WeakReference(target);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference SubscribeMulticastWithTemporaryTarget(
+        WeakEvent<Recorder, TestEventArgs> weakEvent,
+        RecordingTarget live)
+    {
+        RecordingTarget collected = new("collected");
+        EventHandler<Recorder, TestEventArgs> handlers = collected.Record;
+        handlers += live.Record;
+        weakEvent.Subscribe(handlers);
+        return new WeakReference(collected);
     }
 
     internal static void CollectUntilDead(params WeakReference[] references)

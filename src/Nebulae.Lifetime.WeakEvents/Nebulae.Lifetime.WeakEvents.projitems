@@ -11,7 +11,6 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)EventHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WeakEvent.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)WeakEventHandlerFactory.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)WeakEventHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WeakEvent.Handler.cs" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,6 @@
 using Nebulae.Diagnostics;
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -16,7 +17,8 @@ namespace Nebulae.Lifetime.WeakEvents
     /// 保存订阅者的弱引用，使订阅者在订阅期间可被回收。
     /// </para>
     /// <para>
-    /// 对于包含多个处理器的 <see cref="MulticastDelegate"/>，只会转换其中最后被添加的处理器。
+    /// 对于动态创建的委托，如表达式树、动态方法等，若绑定了目标实例，
+    /// 将无法作为 <see cref="WeakEvent{TSender, TArgs}"/> 的处理器。
     /// </para>
     /// <para>
     /// <b>该<see cref="WeakEvent{TSender, TArgs}"/> 中的所有公共成员都是线程安全的。</b>
@@ -39,7 +41,7 @@ namespace Nebulae.Lifetime.WeakEvents
     ///     }
     /// ]]>
     /// </example>
-    public sealed class WeakEvent<TSender, TArgs>
+    public sealed partial class WeakEvent<TSender, TArgs>
 #if NET9_0_OR_GREATER
         where TSender : allows ref struct
         where TArgs : allows ref struct
@@ -73,7 +75,7 @@ namespace Nebulae.Lifetime.WeakEvents
         public void Invoke(TSender sender, TArgs args)
         {
             State state = _state;
-            var invocationList = state.InvocationList ?? Rebuild(state);
+            Handler[] invocationList = state.InvocationList ?? Rebuild(state);
 
             for (int i = 0; i < invocationList.Length; i++)
             {
@@ -91,41 +93,85 @@ namespace Nebulae.Lifetime.WeakEvents
         public void Subscribe(EventHandler<TSender, TArgs> handler)
         {
             ThrowHelpers.ThrowIfArgumentNull(handler);
-            SubscribeCore(handler.AsWeak());
-        }
-
-        /// <summary>
-        /// 订阅事件处理器
-        /// </summary>
-        /// <param name="handler">要订阅的处理器</param>
-#if NET7_0_OR_GREATER
-        [RequiresDynamicCode(AotMessage)]
-#endif
-        public void Subscribe(Delegate handler)
-        {
-            ThrowHelpers.ThrowIfArgumentNull(handler);
-            SubscribeCore(handler.AsWeak<TSender, TArgs>());
+            SubscribeCore(handler);
         }
 
         /// <summary>
         /// 取消订阅事件处理器
         /// </summary>
         /// <param name="handler">要取消订阅的处理器</param>
-        public void Unsubscribe(Delegate handler)
+        public void Unsubscribe(EventHandler<TSender, TArgs> handler)
         {
             ThrowHelpers.ThrowIfArgumentNull(handler);
             UnsubscribeCore(handler);
         }
 
         /// <summary>
-        /// 移除所有引用对象已被回收的事件处理器
+        /// 预先构建事件处理器调用列表缓存
+        /// </summary>
+        /// <remarks>
+        /// 当订阅状态发生变化后，调用列表缓存会失效，
+        /// 若期间未调用 <see cref="Prepare"/>，
+        /// 将在下次调用 <see cref="Invoke(TSender, TArgs)"/> 时重新构建。
+        /// </remarks>
+        public void Prepare()
+        {
+            State state = _state;
+
+            if (state.InvocationList is not null)
+            {
+                return;
+            }
+
+            Handler[] handlers = state.Count is 0
+                ? []
+                : new Handler[state.Count];
+
+            int index = handlers.Length;
+            bool anyDeath = false;
+
+            for (Node? node = state.Head; node is not null; node = node.Next)
+            {
+                if (node.Handler.IsAlive)
+                {
+                    handlers[--index] = node.Handler;
+                }
+                else
+                {
+                    anyDeath = true;
+                }
+            }
+
+            if (!anyDeath)
+            {
+                Interlocked.CompareExchange(ref state.InvocationList, handlers, null);
+                return;
+            }
+
+            handlers = new ReadOnlySpan<Handler>(
+                handlers,
+                index,
+                handlers.Length - index).ToArray();
+
+            Node? head = null;
+
+            for (int i = 0; i < handlers.Length; i++)
+            {
+                head = new Node(handlers[i], head);
+            }
+
+            Interlocked.CompareExchange(ref _state, new State(head, handlers), state);
+        }
+
+        /// <summary>
+        /// 移除所有目标对象已被回收的事件处理器
         /// </summary>
         public void Purge()
         {
         Retry:
-            State observed = _state;
+            State state = _state;
 
-            if (!AnyDeath(observed.Head))
+            if (!AnyDeath(state.Head))
             {
                 return;
             }
@@ -135,7 +181,7 @@ namespace Nebulae.Lifetime.WeakEvents
 
             int count = 0;
 
-            for (var current = observed.Head; current is not null; current = current.Next)
+            for (var current = state.Head; current is not null; current = current.Next)
             {
                 if (current.Handler.IsAlive)
                 {
@@ -155,14 +201,10 @@ namespace Nebulae.Lifetime.WeakEvents
                 }
             }
 
-            State state = new(head, count);
-
-            if (Interlocked.CompareExchange(ref _state, state, observed) != observed)
+            if (Interlocked.CompareExchange(ref _state, new State(head, count), state) != state)
             {
                 goto Retry;
             }
-
-            return;
 
 
             static bool AnyDeath(Node? head)
@@ -190,16 +232,16 @@ namespace Nebulae.Lifetime.WeakEvents
 
         #region Private Methods
 
-        private WeakEventHandler<TSender, TArgs>[] Rebuild(State state)
+        private Handler[] Rebuild(State state)
         {
-            var handlers = state.Count is 0
+            Handler[] handlers = state.Count is 0
                 ? []
-                : new WeakEventHandler<TSender, TArgs>[state.Count];
+                : new Handler[state.Count];
 
             int index = handlers.Length;
             bool anyDeath = false;
 
-            for (var node = state.Head; node is not null; node = node.Next)
+            for (Node? node = state.Head; node is not null; node = node.Next)
             {
                 if (node.Handler.IsAlive)
                 {
@@ -213,7 +255,7 @@ namespace Nebulae.Lifetime.WeakEvents
 
             if (anyDeath)
             {
-                handlers = new ReadOnlySpan<WeakEventHandler<TSender, TArgs>>(
+                handlers = new ReadOnlySpan<Handler>(
                     handlers,
                     index,
                     handlers.Length - index).ToArray();
@@ -225,7 +267,7 @@ namespace Nebulae.Lifetime.WeakEvents
                     head = new Node(handlers[i], head);
                 }
 
-                if (Interlocked.CompareExchange(ref _state, new(head, handlers), state) == state)
+                if (Interlocked.CompareExchange(ref _state, new State(head, handlers), state) == state)
                 {
                     return handlers;
                 }
@@ -238,53 +280,132 @@ namespace Nebulae.Lifetime.WeakEvents
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SubscribeCore(WeakEventHandler<TSender, TArgs> handler)
+        private void SubscribeCore(EventHandler<TSender, TArgs> handler)
+        {
+#if NET9_0_OR_GREATER
+            if (handler.HasSingleTarget)
+            {
+                var node = new Node(Handler.Create(handler));
+                SubscribeCore(node, node, 1);
+            }
+            else
+            {
+                var enumerator = Delegate.EnumerateInvocationList(handler).GetEnumerator();
+                enumerator.MoveNext();
+
+                int count = 1;
+
+                Node tail = new(Handler.Create(enumerator.Current));
+                Node head = tail;
+
+                while (enumerator.MoveNext())
+                {
+                    count++;
+                    head = new Node(Handler.Create(enumerator.Current), head);
+                }
+
+                SubscribeCore(head, tail, count);
+            }
+#else
+            Delegate[] invocationList = handler.GetInvocationList();
+
+            Node tail = new(Handler.Create(Unsafe.As<EventHandler<TSender, TArgs>>(invocationList[0])));
+            Node head = tail;
+
+            for (int i = 1; i < invocationList.Length; i++)
+            {
+                head = new Node(
+                    Handler.Create(Unsafe.As<EventHandler<TSender, TArgs>>(invocationList[i])),
+                    head);
+            }
+
+            SubscribeCore(head, tail, invocationList.Length);
+#endif
+        }
+
+        private void SubscribeCore(Node head, Node tail, int count)
         {
         Retry:
-            State observed = _state;
-            State state = new(
-                new Node(handler, observed.Head),
-                observed.Count + 1);
+            State state = _state;
+            tail.Next = state.Head;
 
-            if (Interlocked.CompareExchange(ref _state, state, observed) != observed)
+            State newState = new(head, state.Count + count);
+
+            if (Interlocked.CompareExchange(ref _state, newState, state) != state)
             {
                 goto Retry;
             }
         }
 
-        private void UnsubscribeCore(Delegate target)
+        private void UnsubscribeCore(EventHandler<TSender, TArgs> handler)
+        {
+#if NET9_0_OR_GREATER
+            if (handler.HasSingleTarget)
+            {
+                UnsubscribeCore((Delegate)handler);
+            }
+            else
+            {
+                UnsubscribeCore(handler.GetInvocationList());
+            }
+#else
+            Delegate[] handlers = handler.GetInvocationList();
+
+            if (handlers.Length is 1)
+            {
+                UnsubscribeCore((Delegate)handler);
+            }
+            else
+            {
+                UnsubscribeCore(handlers);
+            }
+#endif
+        }
+
+        private void UnsubscribeCore(Delegate handler)
         {
         Retry:
-            State observed = _state;
+            State state = _state;
 
-            for (var node = observed.Head; node is not null; node = node.Next)
+            bool anyDeath = false;
+            Node? cadidate = null;
+
+            for (Node? node = state.Head; node is not null; node = node.Next)
             {
-                if (!node.Handler.IsAlive || node.Handler.Matches(target))
+                if (!node.Handler.IsAlive)
                 {
-                    goto Start;
+                    anyDeath = true;
+                    continue;
+                }
+
+                if (node.Handler.Matches(handler))
+                {
+                    cadidate = node;
+                    break;
                 }
             }
 
-            return;
-        Start:
+            if (!anyDeath && cadidate is null)
+            {
+                return;
+            }
+
+            // The tail of invocation list.
             Node? head = null;
+            // The head of invocation list.
             Node? tail = null;
 
             int count = 0;
-            bool removed = false;
 
-            for (var current = observed.Head; current is not null; current = current.Next)
+            for (Node? current = state.Head; current is not null; current = current.Next)
             {
-                WeakEventHandler<TSender, TArgs> handler = current.Handler;
-
-                if (!handler.IsAlive)
+                if (cadidate == current)
                 {
                     continue;
                 }
 
-                if (!removed && handler.Matches(target))
+                if (!current.Handler.IsAlive)
                 {
-                    removed = true;
                     continue;
                 }
 
@@ -303,17 +424,135 @@ namespace Nebulae.Lifetime.WeakEvents
                 count++;
             }
 
-            State state = new(head, count);
+            State newState = count is 0
+                ? State.Empty
+                : new State(head, count);
 
-            if (Interlocked.CompareExchange(ref _state, state, observed) != observed)
+            if (Interlocked.CompareExchange(ref _state, newState, state) != state)
             {
                 goto Retry;
+            }
+        }
+
+        private void UnsubscribeCore(Delegate[] handlers)
+        {
+        Retry:
+            State state = _state;
+
+            Search(state.Head, handlers, out bool anyDeath, out Node? cadidate);
+
+            if (!anyDeath && cadidate is null)
+            {
+                return;
+            }
+
+            // The tail of invocation list.
+            Node? head = null;
+            // The head of invocation list.
+            Node? tail = null;
+
+            int count = 0;
+
+            for (Node? current = state.Head; current is not null; current = current.Next)
+            {
+                if (cadidate == current)
+                {
+                    for (int i = 1; i < handlers.Length; i++)
+                    {
+                        current = current!.Next;
+                    }
+
+                    if (current is null)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+
+                if (!current.Handler.IsAlive)
+                {
+                    continue;
+                }
+
+                var node = new Node(current.Handler);
+
+                if (tail is null)
+                {
+                    head = node;
+                }
+                else
+                {
+                    tail.Next = node;
+                }
+
+                count++;
+                tail = node;
+            }
+
+            State newState = count is 0
+                ? State.Empty
+                : new State(head, count);
+
+            if (Interlocked.CompareExchange(ref _state, newState, state) != state)
+            {
+                goto Retry;
+            }
+
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static void Search(Node? head, Delegate[] handlers, out bool anyDeath, out Node? cadidate)
+            {
+                anyDeath = false;
+
+                for (Node? node = head; node is not null; node = node.Next)
+                {
+                    if (!node.Handler.IsAlive)
+                    {
+                        anyDeath = true;
+                        continue;
+                    }
+
+                    cadidate = node;
+
+                    for (int i = handlers.Length - 1; i >= 0; i--)
+                    {
+                        if (!node.Handler.Matches(handlers[i]))
+                        {
+                            break;
+                        }
+
+                        if (i is 0)
+                        {
+                            return;
+                        }
+
+                        node = node.Next;
+
+                        if (node is null)
+                        {
+                            cadidate = null;
+                            return;
+                        }
+
+                        if (!node.Handler.IsAlive)
+                        {
+                            anyDeath = true;
+                            break;
+                        }
+                    }
+                }
+
+                cadidate = null;
             }
         }
 
         #endregion
 
 
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         private volatile State _state = State.Empty;
 
 
@@ -341,27 +580,7 @@ namespace Nebulae.Lifetime.WeakEvents
             ThrowHelpers.ThrowIfArgumentNull(@event);
             ThrowHelpers.ThrowIfArgumentNull(handler);
 
-            @event.SubscribeCore(handler.AsWeak());
-            return @event;
-        }
-
-        /// <summary>
-        /// 添加事件处理器
-        /// </summary>
-        /// <param name="event">目标弱事件</param>
-        /// <param name="handler">要添加的处理器</param>
-        /// <returns>添加处理器后的 <paramref name="event"/>。</returns>
-#if NET7_0_OR_GREATER
-        [RequiresDynamicCode(AotMessage)]
-#endif
-        public static WeakEvent<TSender, TArgs> operator +(
-            WeakEvent<TSender, TArgs> @event,
-            Delegate handler)
-        {
-            ThrowHelpers.ThrowIfArgumentNull(@event);
-            ThrowHelpers.ThrowIfArgumentNull(handler);
-
-            @event.SubscribeCore(handler.AsWeak<TSender, TArgs>());
+            @event.SubscribeCore(handler);
             return @event;
         }
 
@@ -373,7 +592,7 @@ namespace Nebulae.Lifetime.WeakEvents
         /// <returns>移除处理器后的 <paramref name="event"/>。</returns>
         public static WeakEvent<TSender, TArgs> operator -(
             WeakEvent<TSender, TArgs> @event,
-            Delegate handler)
+            EventHandler<TSender, TArgs> handler)
         {
             ThrowHelpers.ThrowIfArgumentNull(@event);
             ThrowHelpers.ThrowIfArgumentNull(handler);
@@ -387,15 +606,15 @@ namespace Nebulae.Lifetime.WeakEvents
 
         private sealed class Node
         {
-            public readonly WeakEventHandler<TSender, TArgs> Handler;
+            public readonly Handler Handler;
             public Node? Next;
 
-            public Node(WeakEventHandler<TSender, TArgs> handler)
+            public Node(Handler handler)
             {
                 Handler = handler;
             }
 
-            public Node(WeakEventHandler<TSender, TArgs> handler, Node? next)
+            public Node(Handler handler, Node? next)
             {
                 Handler = handler;
                 Next = next;
@@ -409,7 +628,7 @@ namespace Nebulae.Lifetime.WeakEvents
             public readonly Node? Head;
             public readonly int Count;
 
-            public volatile WeakEventHandler<TSender, TArgs>[]? InvocationList;
+            public volatile Handler[]? InvocationList;
 
 
             private State() { }
@@ -421,7 +640,7 @@ namespace Nebulae.Lifetime.WeakEvents
                 Count = count;
             }
 
-            public State(Node? head, WeakEventHandler<TSender, TArgs>[] invocationList)
+            public State(Node? head, Handler[] invocationList)
             {
                 Head = head;
                 Count = invocationList.Length;

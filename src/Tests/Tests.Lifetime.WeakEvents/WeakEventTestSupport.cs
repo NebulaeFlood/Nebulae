@@ -31,6 +31,12 @@ internal sealed class RecordingTarget(string name)
     {
         sender.Entries.Add($"{name}-third:{args.Value}");
     }
+
+    public void RecordContravariant(object sender, object args)
+    {
+        ((Recorder)sender).Entries.Add(
+            $"{name}:{((TestEventArgs)args).Value}");
+    }
 }
 
 internal sealed class CountingTarget
@@ -52,5 +58,11 @@ internal static class WeakEventTestSupport
     public static void RecordStatic(Recorder sender, TestEventArgs args)
     {
         sender.Entries.Add($"static:{args.Value}");
+    }
+
+    public static void RecordContravariantStatic(object sender, object args)
+    {
+        ((Recorder)sender).Entries.Add(
+            $"contravariant-static:{((TestEventArgs)args).Value}");
     }
 }

@@ -10,11 +10,4 @@ namespace Nebulae.Lifetime.WeakEvents
     /// <param name="args">事件参数</param>
     public delegate void EventHandler<in TSender, in TArgs>(TSender sender, TArgs args);
 #endif
-
-    internal delegate void EventHandlerInternal<TSender, TArgs>(object target, TSender sender, TArgs args)
-#if NET9_0_OR_GREATER
-        where TSender : allows ref struct
-        where TArgs : allows ref struct
-#endif
-        ;
 }

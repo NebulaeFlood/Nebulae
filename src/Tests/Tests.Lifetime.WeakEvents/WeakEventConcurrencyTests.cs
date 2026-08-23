@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nebulae.Lifetime.WeakEvents;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;

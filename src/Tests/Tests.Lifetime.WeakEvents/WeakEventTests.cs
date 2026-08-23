@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nebulae.Lifetime.WeakEvents;
 
 namespace Tests.Lifetime.WeakEvents;
@@ -32,7 +31,7 @@ public sealed class WeakEventTests
     }
 
     [TestMethod]
-    public void Subscribe_MulticastDelegate_SubscribesOnlyLastHandler()
+    public void Subscribe_MulticastDelegate_ForwardsAllHandlersInInvocationOrder()
     {
         WeakEvent<Recorder, TestEventArgs> weakEvent = new();
         Recorder sender = new();
@@ -44,7 +43,46 @@ public sealed class WeakEventTests
         weakEvent.Subscribe(handler);
         weakEvent.Invoke(sender, new TestEventArgs(7));
 
-        Assert.AreEqual("target-third:7", string.Join('|', sender.Entries));
+        Assert.AreEqual(
+            "target-first:7|target-second:7|target-third:7",
+            string.Join('|', sender.Entries));
+        GC.KeepAlive(target);
+    }
+
+    [TestMethod]
+    public void Subscribe_ContravariantStaticHandler_ForwardsDerivedArguments()
+    {
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        Recorder sender = new();
+        TestEventArgs args = new(11);
+        EventHandler<object, object> broaderHandler =
+            WeakEventTestSupport.RecordContravariantStatic;
+        EventHandler<Recorder, TestEventArgs> handler = broaderHandler;
+
+        weakEvent.Subscribe(handler);
+        weakEvent.Invoke(sender, args);
+
+        Assert.AreEqual(
+            "contravariant-static:11",
+            string.Join('|', sender.Entries));
+    }
+
+    [TestMethod]
+    public void Subscribe_ContravariantInstanceHandler_ForwardsDerivedArguments()
+    {
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        Recorder sender = new();
+        TestEventArgs args = new(13);
+        RecordingTarget target = new("contravariant-instance");
+        EventHandler<object, object> broaderHandler = target.RecordContravariant;
+        EventHandler<Recorder, TestEventArgs> handler = broaderHandler;
+
+        weakEvent.Subscribe(handler);
+        weakEvent.Invoke(sender, args);
+
+        Assert.AreEqual(
+            "contravariant-instance:13",
+            string.Join('|', sender.Entries));
         GC.KeepAlive(target);
     }
 
@@ -71,6 +109,50 @@ public sealed class WeakEventTests
     }
 
     [TestMethod]
+    public void Unsubscribe_MulticastDelegate_RemovesMostRecentMatchingSequence()
+    {
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        Recorder sender = new();
+        RecordingTarget target = new("target");
+        EventHandler<Recorder, TestEventArgs> sequence = target.RecordFirst;
+        sequence += target.RecordSecond;
+
+        weakEvent.Subscribe(sequence);
+        weakEvent.Subscribe(target.RecordThird);
+        weakEvent.Subscribe(sequence);
+
+        weakEvent.Unsubscribe(sequence);
+        weakEvent.Invoke(sender, new TestEventArgs(5));
+
+        Assert.AreEqual(
+            "target-first:5|target-second:5|target-third:5",
+            string.Join('|', sender.Entries));
+        GC.KeepAlive(target);
+    }
+
+    [TestMethod]
+    public void Unsubscribe_MulticastDelegateWithoutContiguousMatch_PreservesSubscriptions()
+    {
+        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
+        Recorder sender = new();
+        RecordingTarget target = new("target");
+        EventHandler<Recorder, TestEventArgs> sequence = target.RecordFirst;
+        sequence += target.RecordSecond;
+
+        weakEvent.Subscribe(target.RecordFirst);
+        weakEvent.Subscribe(target.RecordThird);
+        weakEvent.Subscribe(target.RecordSecond);
+
+        weakEvent.Unsubscribe(sequence);
+        weakEvent.Invoke(sender, new TestEventArgs(6));
+
+        Assert.AreEqual(
+            "target-first:6|target-third:6|target-second:6",
+            string.Join('|', sender.Entries));
+        GC.KeepAlive(target);
+    }
+
+    [TestMethod]
     public void Unsubscribe_UnknownHandler_PreservesExistingSubscriptions()
     {
         WeakEvent<Recorder, TestEventArgs> weakEvent = new();
@@ -88,54 +170,21 @@ public sealed class WeakEventTests
     }
 
     [TestMethod]
-    public void Subscribe_CompatibleCustomDelegate_ForwardsArguments()
-    {
-        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
-        Recorder sender = new();
-        RecordingTarget target = new("custom");
-        CompatibleHandler handler = target.Record;
-
-        weakEvent.Subscribe((Delegate)handler);
-        weakEvent.Invoke(sender, new TestEventArgs(11));
-
-        Assert.AreEqual("custom:11", string.Join('|', sender.Entries));
-        GC.KeepAlive(target);
-    }
-
-    [TestMethod]
-    public void Subscribe_IncompatibleDelegate_ThrowsWithoutChangingState()
-    {
-        WeakEvent<Recorder, TestEventArgs> weakEvent = new();
-        Recorder sender = new();
-        Action incompatible = IncompatibleHandler;
-        weakEvent.Subscribe(WeakEventTestSupport.RecordStatic);
-
-        Assert.ThrowsExactly<ArgumentException>(
-            () => weakEvent.Subscribe((Delegate)incompatible));
-
-        weakEvent.Invoke(sender, new TestEventArgs(13));
-        Assert.AreEqual("static:13", string.Join('|', sender.Entries));
-    }
-
-    [TestMethod]
     public void PublicEntryPoints_NullOperands_ThrowArgumentNullException()
     {
         WeakEvent<Recorder, TestEventArgs> weakEvent = new();
         WeakEvent<Recorder, TestEventArgs> nullEvent = null!;
         EventHandler<Recorder, TestEventArgs> handler = WeakEventTestSupport.RecordStatic;
-        Delegate delegateHandler = handler;
 
         AssertNullHandler(
             () => weakEvent.Subscribe((EventHandler<Recorder, TestEventArgs>)null!));
-        AssertNullHandler(() => weakEvent.Subscribe((Delegate)null!));
-        AssertNullHandler(() => weakEvent.Unsubscribe(null!));
+        AssertNullHandler(
+            () => weakEvent.Unsubscribe((EventHandler<Recorder, TestEventArgs>)null!));
         AssertNullHandler(() => _ = weakEvent + (EventHandler<Recorder, TestEventArgs>)null!);
-        AssertNullHandler(() => _ = weakEvent + (Delegate)null!);
-        AssertNullHandler(() => _ = weakEvent - (Delegate)null!);
+        AssertNullHandler(() => _ = weakEvent - (EventHandler<Recorder, TestEventArgs>)null!);
 
         Assert.ThrowsExactly<ArgumentNullException>(() => _ = nullEvent + handler);
-        Assert.ThrowsExactly<ArgumentNullException>(() => _ = nullEvent + delegateHandler);
-        Assert.ThrowsExactly<ArgumentNullException>(() => _ = nullEvent - delegateHandler);
+        Assert.ThrowsExactly<ArgumentNullException>(() => _ = nullEvent - handler);
     }
 
     [TestMethod]
@@ -144,20 +193,20 @@ public sealed class WeakEventTests
         WeakEvent<Recorder, TestEventArgs> weakEvent = new();
         Recorder sender = new();
         RecordingTarget target = new("target");
-        EventHandler<Recorder, TestEventArgs> typedHandler = target.RecordFirst;
-        CompatibleHandler customHandler = target.Record;
+        EventHandler<Recorder, TestEventArgs> first = target.RecordFirst;
+        EventHandler<Recorder, TestEventArgs> second = target.RecordSecond;
 
-        WeakEvent<Recorder, TestEventArgs> result = weakEvent + typedHandler;
+        WeakEvent<Recorder, TestEventArgs> result = weakEvent + first;
         Assert.AreSame(weakEvent, result);
 
-        result = weakEvent + (Delegate)customHandler;
+        result = weakEvent + second;
         Assert.AreSame(weakEvent, result);
 
-        result = weakEvent - typedHandler;
+        result = weakEvent - first;
         Assert.AreSame(weakEvent, result);
 
         weakEvent.Invoke(sender, new TestEventArgs(17));
-        Assert.AreEqual("target:17", string.Join('|', sender.Entries));
+        Assert.AreEqual("target-second:17", string.Join('|', sender.Entries));
         GC.KeepAlive(target);
     }
 
@@ -188,9 +237,4 @@ public sealed class WeakEventTests
         Assert.AreEqual("handler", exception.ParamName);
     }
 
-    private static void IncompatibleHandler()
-    {
-    }
-
-    private delegate void CompatibleHandler(Recorder sender, TestEventArgs args);
 }
