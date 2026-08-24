@@ -83,6 +83,28 @@ namespace System.Diagnostics.CodeAnalysis
     internal sealed class NotNullAttribute : Attribute { }
 
     /// <summary>
+    /// 指明返回值在指定参数不为 <see langword="null"/> 时永远不会为 <see langword="null"/>
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.ReturnValue, AllowMultiple = true, Inherited = false)]
+    internal sealed class NotNullIfNotNullAttribute : Attribute
+    {
+        /// <summary>
+        /// 初始化 <see cref="NotNullIfNotNullAttribute"/> 的新实例
+        /// </summary>
+        /// <param name="parameterName">参数名称</param>
+        public NotNullIfNotNullAttribute(string parameterName)
+        {
+            ParameterName = parameterName;
+        }
+
+
+        /// <summary>
+        /// 获取设定的参数名称
+        /// </summary>
+        public string ParameterName { get; }
+    }
+
+    /// <summary>
     /// 指明参数在方法返回指定值时永远不会为 <see langword="null"/>
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
