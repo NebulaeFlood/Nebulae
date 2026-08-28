@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace Nebulae.Diagnostics
@@ -12,7 +11,6 @@ namespace Nebulae.Diagnostics
     /// <summary>
     /// 分析日志生成的工具类
     /// </summary>
-    [DebuggerStepThrough]
     public static class DiagnosticHelpers
     {
         /// <summary>
@@ -65,15 +63,17 @@ namespace Nebulae.Diagnostics
                     .ToString();
             }
 
-            if (obj is DBNull)
-            {
-                return "System.DBNull";
-            }
-
             if (obj is ParameterInfo[] parameters)
             {
                 return new StringBuilder(128)
                     .FormatParameters(parameters)
+                    .ToString();
+            }
+
+            if (obj is ParameterInfo parameter)
+            {
+                return new StringBuilder(64)
+                    .FormatParameter(parameter)
                     .ToString();
             }
 
@@ -82,6 +82,11 @@ namespace Nebulae.Diagnostics
                 return new StringBuilder(128)
                     .FormatTypes(types)
                     .ToString();
+            }
+
+            if (obj is DBNull)
+            {
+                return "System.DBNull";
             }
 
             if (obj is string str)
@@ -105,7 +110,6 @@ namespace Nebulae.Diagnostics
         /// <returns>由 <paramref name="str"/> 转换的日志文本。</returns>
         /// <remarks>
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string AsLog(this string? str)
         {
             if (str is null)
@@ -157,6 +161,22 @@ namespace Nebulae.Diagnostics
 
             return new StringBuilder(128)
                 .FormatTypes(types)
+                .ToString();
+        }
+
+        /// <summary>
+        /// 将参数信息转换为日志文本
+        /// </summary>
+        /// <param name="parameter">要转换的参数信息</param>
+        /// <returns>由 <paramref name="parameter"/> 转换的日志文本。</returns>
+        public static string AsLog(this ParameterInfo? parameter)
+        {
+            if (parameter is null)
+            {
+                return Null;
+            }
+            return new StringBuilder(64)
+                .FormatParameter(parameter)
                 .ToString();
         }
 
@@ -240,17 +260,22 @@ namespace Nebulae.Diagnostics
         #region Builder Methods
 
         /// <summary>
-        /// 将对象的格式化日志追加到字符串构建器
+        /// 将对象的格式化日志追加到 <see cref="StringBuilder"/>
         /// </summary>
         /// <typeparam name="T">对象的类型</typeparam>
-        /// <param name="builder">字符串构建器</param>
+        /// <param name="builder">目标 <see cref="StringBuilder"/></param>
         /// <param name="obj">格式对象</param>
-        /// <returns>添加了格式化信息的字符串构建器。</returns>
+        /// <returns>添加了格式化信息的 <see cref="StringBuilder"/>。</returns>
         public static StringBuilder Format<T>(this StringBuilder builder, T? obj)
         {
             if (obj is null)
             {
                 return builder.Append(Null);
+            }
+
+            if (obj is Type type)
+            {
+                return builder.FormatType(type);
             }
 
             if (obj is Delegate @delegate)
@@ -268,6 +293,16 @@ namespace Nebulae.Diagnostics
             if (obj is ParameterInfo[] parameters)
             {
                 return builder.FormatParameters(parameters);
+            }
+
+            if (obj is ParameterInfo parameter)
+            {
+                return builder.FormatParameter(parameter);
+            }
+
+            if (obj is Type[] types)
+            {
+                return builder.FormatTypes(types);
             }
 
             if (obj is DBNull)
@@ -298,11 +333,11 @@ namespace Nebulae.Diagnostics
         }
 
         /// <summary>
-        /// 将字符串的格式化到字符串构建器
+        /// 将字符串的格式化到 <see cref="StringBuilder"/>
         /// </summary>
-        /// <param name="builder">字符串构建器</param>
+        /// <param name="builder">目标 <see cref="StringBuilder"/></param>
         /// <param name="str">目标字符串</param>
-        /// <returns>添加了格式化类型信息的字符串构建器。</returns>
+        /// <returns>添加了格式化类型信息的 <see cref="StringBuilder"/>。</returns>
         public static StringBuilder Format(this StringBuilder builder, string? str)
         {
             if (str is null)
@@ -324,11 +359,11 @@ namespace Nebulae.Diagnostics
         }
 
         /// <summary>
-        /// 将类型信息格式化到字符串构建器
+        /// 将类型信息格式化到 <see cref="StringBuilder"/>
         /// </summary>
-        /// <param name="builder">字符串构建器</param>
+        /// <param name="builder">目标 <see cref="StringBuilder"/></param>
         /// <param name="type">类型信息</param>
-        /// <returns>添加了格式化类型信息的字符串构建器。</returns>
+        /// <returns>添加了格式化类型信息的 <see cref="StringBuilder"/>。</returns>
         public static StringBuilder Format(this StringBuilder builder, Type type)
         {
             ThrowHelpers.ThrowIfArgumentNull(type);
@@ -336,35 +371,45 @@ namespace Nebulae.Diagnostics
         }
 
         /// <summary>
-        /// 将类型信息数组格式化到字符串构建器
+        /// 将类型信息数组格式化到 <see cref="StringBuilder"/>
         /// </summary>
-        /// <param name="builder">字符串构建器</param>
+        /// <param name="builder">目标 <see cref="StringBuilder"/></param>
         /// <param name="types">类型信息数组</param>
-        /// <returns>添加了格式化类型信息数组的字符串构建器。</returns>
-        public static StringBuilder Format(this StringBuilder builder, Type[] types)
+        /// <returns>添加了格式化类型信息数组的 <see cref="StringBuilder"/>。</returns>
+        public static StringBuilder Format(this StringBuilder builder, scoped ReadOnlySpan<Type> types)
         {
-            ThrowHelpers.ThrowIfArgumentNull(types);
             return builder.FormatTypes(types);
         }
 
         /// <summary>
-        /// 将参数信息数组格式化到字符串构建器
+        /// 将参数信息格式化到 <see cref="StringBuilder"/>
         /// </summary>
-        /// <param name="builder">字符串构建器</param>
-        /// <param name="parameters">参数信息数组</param>
-        /// <returns>添加了格式化参数信息数组的字符串构建器。</returns>
-        public static StringBuilder Format(this StringBuilder builder, ParameterInfo[] parameters)
+        /// <param name="builder">目标 <see cref="StringBuilder"/></param>
+        /// <param name="parameter">参数信息</param>
+        /// <returns>添加了格式化参数信息的 <see cref="StringBuilder"/></returns>
+        public static StringBuilder Format(this StringBuilder builder, ParameterInfo parameter)
         {
-            ThrowHelpers.ThrowIfArgumentNull(parameters);
+            ThrowHelpers.ThrowIfArgumentNull(parameter);
+            return builder.FormatParameter(parameter);
+        }
+
+        /// <summary>
+        /// 将参数信息数组格式化到 <see cref="StringBuilder"/>
+        /// </summary>
+        /// <param name="builder">目标 <see cref="StringBuilder"/></param>
+        /// <param name="parameters">参数信息数组</param>
+        /// <returns>添加了格式化参数信息数组的 <see cref="StringBuilder"/>。</returns>
+        public static StringBuilder Format(this StringBuilder builder, scoped ReadOnlySpan<ParameterInfo> parameters)
+        {
             return builder.FormatParameters(parameters);
         }
 
         /// <summary>
-        /// 将委托格式化到字符串构建器
+        /// 将委托格式化到 <see cref="StringBuilder"/>
         /// </summary>
-        /// <param name="builder">字符串构建器</param>
+        /// <param name="builder">目标 <see cref="StringBuilder"/></param>
         /// <param name="delegate">委托对象</param>
-        /// <returns>添加了格式化委托信息的字符串构建器。</returns>
+        /// <returns>添加了格式化委托信息的 <see cref="StringBuilder"/>。</returns>
         public static StringBuilder Format(this StringBuilder builder, Delegate @delegate)
         {
             ThrowHelpers.ThrowIfArgumentNull(@delegate);
@@ -372,11 +417,11 @@ namespace Nebulae.Diagnostics
         }
 
         /// <summary>
-        /// 将方法格式化到字符串构建器
+        /// 将方法格式化到 <see cref="StringBuilder"/>
         /// </summary>
-        /// <param name="builder">字符串构建器</param>
+        /// <param name="builder">目标 <see cref="StringBuilder"/></param>
         /// <param name="method">方法信息</param>
-        /// <returns>添加了格式化方法信息的字符串构建器。</returns>
+        /// <returns>添加了格式化方法信息的 <see cref="StringBuilder"/>。</returns>
         public static StringBuilder Format(this StringBuilder builder, MethodInfo method)
         {
             ThrowHelpers.ThrowIfArgumentNull(method);
@@ -384,11 +429,11 @@ namespace Nebulae.Diagnostics
         }
 
         /// <summary>
-        /// 将成员格式化到字符串构建器
+        /// 将成员格式化到 <see cref="StringBuilder"/>
         /// </summary>
-        /// <param name="builder">字符串构建器</param>
+        /// <param name="builder">目标 <see cref="StringBuilder"/></param>
         /// <param name="member">成员信息</param>
-        /// <returns>添加了格式化成员信息的字符串构建器。</returns>
+        /// <returns>添加了格式化成员信息的 <see cref="StringBuilder"/>。</returns>
         public static StringBuilder Format(this StringBuilder builder, MemberInfo member)
         {
             ThrowHelpers.ThrowIfArgumentNull(member);
@@ -398,51 +443,30 @@ namespace Nebulae.Diagnostics
         #endregion
 
 
+        //------------------------------------------------------
+        //
+        //  Debugger Methods
+        //
+        //------------------------------------------------------
+
+        #region Debugger Methods
+
         /// <summary>
         /// 将对象转储到日志输出
         /// </summary>
         /// <param name="obj">要转换的对象</param>
         /// <param name="subject">日志主语</param>
         /// <returns>返回传入的 <paramref name="obj"/>。</returns>
+        /// <remarks>此方法主要在调试时使用，以便在开发过程中查看对象的当前状态。</remarks>
         public static T Dump<T>(this T obj, [CallerMemberName] string? subject = null)
         {
-            string? message;
+            var builder = new StringBuilder(128)
+                .Append('[')
+                .Append(string.IsNullOrWhiteSpace(subject) ? DateTime.Now.ToString("HH:mm:ss.fff") : subject)
+                .Append("] ")
+                .Dump(obj);
 
-            if (obj is string || obj is not IEnumerable collection)
-            {
-                message = obj.AsLog();
-            }
-            else
-            {
-                var builder = new StringBuilder(128).Append('[');
-                var isFirst = true;
-
-                foreach (var item in collection)
-                {
-                    if (!isFirst)
-                    {
-                        builder.Append(", ");
-                    }
-
-                    if (item is string || item is not IEnumerable)
-                    {
-                        builder.Append(item.AsLog());
-                    }
-                    else
-                    {
-                        builder.Append("[...]");
-                    }
-
-                    isFirst = false;
-                }
-
-                message = builder.Append(']').ToString();
-            }
-
-#if RIMWORLD // On my RimWorld mods.
-            Verse.Log.Message($"<color=#3F48CC>[{subject}]</color> {message}");
-#endif
-            message = $"[{subject}] {message}";
+            string message = builder.ToString();
 
             Console.WriteLine(message);
             Debug.WriteLine(message);
@@ -458,20 +482,38 @@ namespace Nebulae.Diagnostics
         /// <param name="stackTrace">调用堆栈</param>
         /// <param name="subject">日志主语</param>
         /// <returns>返回传入的 <paramref name="obj"/>。</returns>
+        /// <remarks>此方法主要在调试时使用，以便在开发过程中查看对象的当前状态。</remarks>
         public static T Dump<T>(this T obj, StackTrace stackTrace, [CallerMemberName] string? subject = null)
         {
             ThrowHelpers.ThrowIfArgumentNull(stackTrace);
 
-            string? message;
+            var builder = new StringBuilder(128)
+                .Append('[')
+                .Append(string.IsNullOrWhiteSpace(subject) ? DateTime.Now.ToString("HH:mm:ss.fff") : subject)
+                .Append("] ")
+                .Dump(obj)
+                .AppendLine()
+                .Append(stackTrace.ToString());
 
+            string message = builder.ToString();
+
+            Console.WriteLine(message);
+            Debug.WriteLine(message);
+            Trace.WriteLine(message);
+
+            return obj;
+        }
+
+        private static StringBuilder Dump<T>(this StringBuilder builder, T obj)
+        {
             if (obj is string || obj is not IEnumerable collection)
             {
-                message = obj.AsLog();
+                builder.Format(obj);
             }
             else
             {
-                var builder = new StringBuilder(128).Append('[');
-                var isFirst = true;
+                builder.Append('[');
+                bool isFirst = true;
 
                 foreach (var item in collection)
                 {
@@ -482,7 +524,7 @@ namespace Nebulae.Diagnostics
 
                     if (item is string || item is not IEnumerable)
                     {
-                        builder.Append(item.AsLog());
+                        builder.Format(item);
                     }
                     else
                     {
@@ -492,15 +534,28 @@ namespace Nebulae.Diagnostics
                     isFirst = false;
                 }
 
-                message = builder.Append(']').ToString();
+                builder.Append(']');
             }
 
-            if (string.IsNullOrWhiteSpace(subject))
-            {
-                subject = DateTime.Now.ToString("HH:mm:ss.fff");
-            }
+            return builder;
+        }
 
-            message = $"[{subject}] {message}{Environment.NewLine}{stackTrace}";
+        /// <summary>
+        /// 将对象的详细详细按格式转储到日志输出
+        /// </summary>
+        /// <param name="obj">要转换的对象</param>
+        /// <param name="subject">日志主语</param>
+        /// <returns>返回传入的 <paramref name="obj"/>。</returns>
+        /// <remarks>此方法主要在调试时使用，以便在开发过程中查看对象的当前状态。</remarks>
+        public static T? Inspect<T>(this T? obj, [CallerMemberName] string? subject = null)
+        {
+            var builder = new StringBuilder(128)
+                .Append('[')
+                .Append(subject ?? new StackFrame(1).ToString() ?? Null)
+                .Append(']')
+                .Inspect(obj, new StackTrace(true));
+
+            string message = builder.ToString();
 
             Console.WriteLine(message);
             Debug.WriteLine(message);
@@ -508,6 +563,42 @@ namespace Nebulae.Diagnostics
 
             return obj;
         }
+
+        private static StringBuilder Inspect<T>(this StringBuilder builder, T? obj, StackTrace stackTrace)
+        {
+            builder.AppendLine(" --- Inspect ---")
+                .Append('{')
+                .AppendLine()
+                .Append("  Value: ")
+                .Dump(obj)
+                .AppendLine()
+                .Append("  Type: ");
+
+            if (typeof(T).IsValueType)
+            {
+                builder.Format(typeof(T))
+                    .AppendLine();
+            }
+            else if (obj is not null)
+            {
+                builder.Format(obj.GetType())
+                    .AppendLine();
+            }
+            else
+            {
+                builder.AppendLine($" Type: {Null}");
+            }
+
+            if (stackTrace.FrameCount is not 0)
+            {
+                builder.AppendLine("  StackTrace:")
+                    .Append(stackTrace.ToString());
+            }
+
+            return builder.Append('}');
+        }
+
+        #endregion
 
 
         //------------------------------------------------------
@@ -518,11 +609,24 @@ namespace Nebulae.Diagnostics
 
         #region Private Format Helpers
 
-        private static StringBuilder FormatDeclaringType(this StringBuilder builder, Type? declaringType, bool scoped = true)
+        private static StringBuilder FormatDeclaringType(this StringBuilder builder, MemberInfo member, bool scoped = true)
         {
+#if !NETSTANDARD2_0
+            if (member is DynamicMethod)
+            {
+                return builder.Append("[dynamic] ");
+            }
+#endif
+            var declaringType = member.DeclaringType;
+
             if (declaringType is null)
             {
                 return builder.Append("[global] ");
+            }
+
+            if (member.MemberType is MemberTypes.Constructor)
+            {
+                return builder.FormatType(declaringType, scoped);
             }
 
             return builder
@@ -535,17 +639,19 @@ namespace Nebulae.Diagnostics
             switch (member.MemberType)
             {
                 case MemberTypes.Constructor:
+                    var constructor = (ConstructorInfo)member;
+
                     return builder
                         .FormatType(typeof(void))
                         .Append(' ')
-                        .FormatDeclaringType(member.DeclaringType)
-                        .Append("ctor(")
-                        .FormatParameters(((ConstructorInfo)member).GetParameters())
+                        .FormatDeclaringType(member)
+                        .Append(constructor.IsStatic ? ".cctor(" : ".ctor(")
+                        .FormatParameters(constructor.GetParameters())
                         .Append(')');
                 case MemberTypes.Event:
                 case MemberTypes.Field:
                     return builder
-                        .FormatDeclaringType(member.DeclaringType)
+                        .FormatDeclaringType(member)
                         .Append(member.Name);
                 case MemberTypes.Property:
                     var parameters = ((PropertyInfo)member).GetIndexParameters();
@@ -553,14 +659,14 @@ namespace Nebulae.Diagnostics
                     if (parameters.Length < 1)
                     {
                         return builder
-                            .FormatDeclaringType(member.DeclaringType)
+                            .FormatDeclaringType(member)
                             .Append(member.Name);
                     }
                     else
                     {
                         return builder
-                            .FormatDeclaringType(member.DeclaringType)
-                            .Append("this[")
+                            .FormatDeclaringType(member)
+                            .Append('[')
                             .FormatParameters(parameters)
                             .Append(']');
                     }
@@ -581,21 +687,26 @@ namespace Nebulae.Diagnostics
             if (invocationList.Length is 1)
             {
                 builder
-                    .Append("[delegate]")
+                    .Append("[delegate]->")
                     .FormatType(@delegate.GetType()).Append('(')
                     .FormatMethod(@delegate.Method).Append(')');
             }
             else
             {
+                @delegate = invocationList[0];
+
                 builder
-                    .Append("[multicast delegate]")
+                    .AppendLine("[multicast delegate]->{")
+                    .Append("\t[delegate]->")
                     .FormatType(@delegate.GetType()).Append('(')
                     .FormatMethod(@delegate.Method).Append(')');
 
                 for (int i = 1; i < invocationList.Length; i++)
                 {
-                    builder.AppendLine().FormatDelegate(invocationList[i]);
+                    builder.AppendLine().Append('\t').FormatDelegate(invocationList[i]);
                 }
+
+                builder.AppendLine().Append('}');
             }
 
             return builder;
@@ -603,9 +714,9 @@ namespace Nebulae.Diagnostics
 
         private static StringBuilder FormatMethod(this StringBuilder builder, MethodInfo method)
         {
-            builder
-                .FormatType(method.ReturnType).Append(' ')
-                .FormatDeclaringType(method.DeclaringType)
+            builder.FormatType(method.ReturnType)
+                .Append(' ')
+                .FormatDeclaringType(method)
                 .Append(method.Name);
 
             if (method.IsGenericMethod)
@@ -625,39 +736,55 @@ namespace Nebulae.Diagnostics
             return builder.Append('(').FormatParameters(method.GetParameters()).Append(')');
         }
 
-        private static StringBuilder FormatParameters(this StringBuilder builder, ParameterInfo[] parameters)
+        private static StringBuilder FormatParameter(this StringBuilder builder, ParameterInfo parameter)
         {
-            for (int i = 0; i < parameters.Length; i++)
+            Type parameterType = parameter.ParameterType;
+
+            switch (parameter.Attributes & (ParameterAttributes.In | ParameterAttributes.Out))
             {
-                if (i > 0)
-                {
-                    builder.Append(", ");
-                }
+                case ParameterAttributes.In | ParameterAttributes.Out:
+                    builder.Append("ref ");
+                    parameterType = parameterType.GetElementType()!;
+                    break;
+                case ParameterAttributes.In:
+                    builder.Append("in ");
+                    parameterType = parameterType.GetElementType()!;
+                    break;
+                case ParameterAttributes.Out:
+                    builder.Append("out ");
+                    parameterType = parameterType.GetElementType()!;
+                    break;
+                default:
+                    if (parameterType.IsByRef)
+                    {
+                        builder.Append("ref ");
+                        parameterType = parameterType.GetElementType()!;
+                    }
+                    break;
+            }
 
-                ParameterInfo parameter = parameters[i];
-                Type parameterType = parameter.ParameterType;
+            builder.FormatType(parameterType);
 
-                if (parameter.IsIn)
-                {
-                    builder.Append("in ").FormatType(parameterType.GetElementType()!);
-                }
-                else if (parameter.IsOut)
-                {
-                    builder.Append("out ").FormatType(parameterType.GetElementType()!);
-                }
-                else if (parameterType.IsByRef)
-                {
-                    builder.Append("ref ").FormatType(parameterType.GetElementType()!);
-                }
-                else
-                {
-                    builder.FormatType(parameterType);
-                }
+            if (!string.IsNullOrEmpty(parameter.Name))
+            {
+                builder.Append(' ').Append(parameter.Name);
+            }
 
-                if (!string.IsNullOrEmpty(parameter.Name))
-                {
-                    builder.Append(' ').Append(parameter.Name);
-                }
+            return builder;
+        }
+
+        private static StringBuilder FormatParameters(this StringBuilder builder, scoped ReadOnlySpan<ParameterInfo> parameters)
+        {
+            if (parameters.Length is 0)
+            {
+                return builder;
+            }
+
+            builder.FormatParameter(parameters[0]);
+
+            for (int i = 1; i < parameters.Length; i++)
+            {
+                builder.Append(", ").FormatParameter(parameters[i]);
             }
 
             return builder;
@@ -762,7 +889,7 @@ namespace Nebulae.Diagnostics
             }
         }
 
-        private static StringBuilder FormatTypes(this StringBuilder builder, Type[] types)
+        private static StringBuilder FormatTypes(this StringBuilder builder, scoped ReadOnlySpan<Type> types)
         {
             if (types.Length < 1)
             {
@@ -795,6 +922,7 @@ namespace Nebulae.Diagnostics
         #endregion
 
 
-        private static readonly char[] GenericTypeNameTrimChars = ['`', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        private static readonly char[] GenericTypeNameTrimChars =
+            ['`', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
     }
 }
