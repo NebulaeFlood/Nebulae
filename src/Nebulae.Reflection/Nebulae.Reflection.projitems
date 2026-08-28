@@ -18,12 +18,15 @@
     <Compile Include="$(MSBuildThisFileDirectory)Specifier.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ILGeneratorExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Specifiers\ConstructorSpecifier.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Specifiers\DelegateSpecifier.Closure.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Specifiers\DelegateSpecifier.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Specifiers\EventSpecifier.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Specifiers\MethodSpecifier.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Specifiers\PropertySpecifier.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Specifiers\SpecifierBinding.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Specifiers\FieldSpecifier.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Specifiers\SpecifierCulture.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Specifiers\SpecifierInvokerInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Specifiers\SpecifierParameterInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Specifiers\SpecifierPolicy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Specifiers\SpecifierVerifier.cs" />

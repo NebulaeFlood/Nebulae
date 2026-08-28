@@ -21,21 +21,21 @@ namespace Nebulae.Reflection
         /// 判断参数类型与指定类型是否兼容
         /// </summary>
         /// <param name="parameter">参数类型</param>
-        /// <param name="cadidate">目标类型</param>
-        /// <returns>若 <paramref name="cadidate"/> 与参数类型兼容，返回 <see langword="true"/>；反之则返回 <see langword="false"/>。</returns>
-        public static bool IsCompatible(Type parameter, Type cadidate)
+        /// <param name="candidate">目标类型</param>
+        /// <returns>若 <paramref name="candidate"/> 与参数类型兼容，返回 <see langword="true"/>；反之则返回 <see langword="false"/>。</returns>
+        public static bool IsCompatible(Type parameter, Type candidate)
         {
-            if (parameter == cadidate)
+            if (parameter == candidate)
             {
                 return true;
             }
 
-            if (parameter.IsValueType || cadidate.IsValueType)
+            if (parameter.IsValueType || candidate.IsValueType)
             {
                 return false;
             }
 
-            return parameter.IsAssignableFrom(cadidate);
+            return parameter.IsAssignableFrom(candidate);
         }
 
         /// <summary>

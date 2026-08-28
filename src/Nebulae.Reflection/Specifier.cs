@@ -9,6 +9,20 @@ namespace Nebulae.Reflection
     /// <summary>
     /// 提供用于创建引用说明符的扩展方法
     /// </summary>
+    /// <remarks>
+    /// 不支持如下成员：
+    /// <list type="bullet">
+    /// <item>
+    /// <see cref="MemberInfo.DeclaringType"/> 为 <see langword="null"/> 的成员。
+    /// </item>
+    /// <item>
+    /// <see cref="MemberInfo.DeclaringType"/> 的 <see cref="Type.ContainsGenericParameters"/> 为 <see langword="true"/> 的成员。
+    /// </item>
+    /// <item>
+    /// <see cref="MethodBase.ContainsGenericParameters"/> 为 <see langword="true"/> 的成员。
+    /// </item>
+    /// </list>
+    /// </remarks>
     [DebuggerStepThrough]
     public static class Specifier
     {
@@ -26,9 +40,76 @@ namespace Nebulae.Reflection
         // +--------+---------+-------+-------+-------+-------+-------+-------+
         // | Policy | Binding |    Culture (3 bits)   |    Unused (3 bits)    |
         // +--------+---------+-------+-------+-------+-------+-------+-------+
-        internal const byte BindingMask = 0B_0100_0000;
-        internal const byte CultureMask = 0B_0011_1000;
-        internal const byte PolicyMask = 0B_1000_0000;
+        private const byte BindingMask = 0B_0100_0000;
+        private const byte BindingOffset = 6;
+        private const byte CultureMask = 0B_0011_1000;
+        private const byte CultureOffset = 3;
+        private const byte PolicyMask = 0B_1000_0000;
+        private const byte PolicyOffset = 7;
+
+        #endregion
+
+
+        //------------------------------------------------------
+        //
+        //  Flags Helpers
+        //
+        //------------------------------------------------------
+
+        #region Flags Helpers
+
+        internal static byte Close(byte flags)
+        {
+            return (byte)(flags | BindingMask);
+        }
+
+        internal static byte Open(byte flags)
+        {
+            return (byte)(flags & ~BindingMask);
+        }
+
+        internal static byte Lenient(byte flags)
+        {
+            return (byte)((flags & ~(CultureMask | PolicyMask)) | PolicyMask);
+        }
+
+        internal static byte Lenient(byte flags, SpecifierCulture culture)
+        {
+            return (byte)(
+                (flags & ~(CultureMask | PolicyMask))
+                | (((int)culture << CultureOffset) & CultureMask)
+                | PolicyMask);
+        }
+
+        internal static byte Strict(byte flags)
+        {
+            return (byte)(flags & ~(CultureMask | PolicyMask));
+        }
+
+        internal static SpecifierBinding GetBinding(byte flags)
+        {
+            return (SpecifierBinding)((flags & BindingMask) >> BindingOffset);
+        }
+
+        internal static SpecifierCulture GetCulture(byte flags)
+        {
+            return (SpecifierCulture)((flags & CultureMask) >> CultureOffset);
+        }
+
+        internal static SpecifierPolicy GetPolicy(byte flags)
+        {
+            return (SpecifierPolicy)((flags & PolicyMask) >> PolicyOffset);
+        }
+
+        internal static bool IsOpen(byte flags)
+        {
+            return (flags & BindingMask) == 0;
+        }
+
+        internal static bool IsStrict(byte flags)
+        {
+            return (flags & PolicyMask) == 0;
+        }
 
         #endregion
 
@@ -62,12 +143,13 @@ namespace Nebulae.Reflection
                 $"Cannot specify constructor '{constructorInfo.AsLog()}' " +
                 $"because it does not have a declaring type.");
 
-            if (declaringType.IsGenericTypeDefinition)
+            if (declaringType.ContainsGenericParameters)
             {
                 throw new ArgumentException(
                     $"Cannot specify constructor '{constructorInfo.AsLog()}' " +
                     $"because its declaring type '{declaringType.AsLog()}' " +
-                    $"is a generic type definition.");
+                    $"contains generic parameters that " +
+                    $"have not been replaced with concrete types.");
             }
 
             return new ConstructorSpecifier(constructorInfo);
@@ -86,12 +168,13 @@ namespace Nebulae.Reflection
                 $"Cannot specify event '{eventInfo.AsLog()}' " +
                 $"because it does not have a declaring type.");
 
-            if (declaringType.IsGenericTypeDefinition)
+            if (declaringType.ContainsGenericParameters)
             {
                 throw new ArgumentException(
                     $"Cannot specify event '{eventInfo.AsLog()}' " +
                     $"because its declaring type '{declaringType.AsLog()}' " +
-                    $"is a generic type definition.");
+                    $"contains generic parameters that " +
+                    $"have not been replaced with concrete types.");
             }
 
             return new EventSpecifier(eventInfo);
@@ -110,12 +193,13 @@ namespace Nebulae.Reflection
                 $"Cannot specify field '{fieldInfo.AsLog()}' " +
                 $"because it does not have a declaring type.");
 
-            if (declaringType.IsGenericTypeDefinition)
+            if (declaringType.ContainsGenericParameters)
             {
                 throw new ArgumentException(
                     $"Cannot specify field '{fieldInfo.AsLog()}' " +
                     $"because its declaring type '{declaringType.AsLog()}' " +
-                    $"is a generic type definition.");
+                    $"contains generic parameters that " +
+                    $"have not been replaced with concrete types.");
             }
 
             return new FieldSpecifier(fieldInfo);
@@ -134,19 +218,21 @@ namespace Nebulae.Reflection
                 $"Cannot specify method '{methodInfo.AsLog()}' " +
                 $"because it does not have a declaring type.");
 
-            if (declaringType.IsGenericTypeDefinition)
+            if (declaringType.ContainsGenericParameters)
             {
                 throw new ArgumentException(
                     $"Cannot specify method '{methodInfo.AsLog()}' " +
                     $"because its declaring type '{declaringType.AsLog()}' " +
-                    $"is a generic type definition.");
+                    $"contains generic parameters that " +
+                    $"have not been replaced with concrete types.");
             }
 
-            if (methodInfo.IsGenericMethodDefinition)
+            if (methodInfo.ContainsGenericParameters)
             {
                 throw new ArgumentException(
                     $"Cannot specify method '{methodInfo.AsLog()}' " +
-                    $"because it is a generic method definition.");
+                    $"because it contains generic parameters that " +
+                    $"have not been replaced with concrete types.");
             }
 
             return new MethodSpecifier(methodInfo);
@@ -165,14 +251,39 @@ namespace Nebulae.Reflection
                 $"Cannot specify property '{propertyInfo.AsLog()}' " +
                 $"because it does not have a declaring type.");
 
-            if (declaringType.IsGenericTypeDefinition)
+            if (declaringType.ContainsGenericParameters)
             {
                 throw new ArgumentException(
                     $"Cannot specify property '{propertyInfo.AsLog()}' " +
                     $"because its declaring type '{declaringType.AsLog()}' " +
-                    $"is a generic type definition.");
+                    $"contains generic parameters that " +
+                    $"have not been replaced with concrete types.");
             }
+
             return new PropertySpecifier(propertyInfo);
+        }
+
+
+        /// <summary>
+        /// 成员说明符的编译器
+        /// </summary>
+        /// <typeparam name="TDelegate">委托类型</typeparam>
+        public interface ICompiler<out TDelegate> where TDelegate : Delegate
+        {
+            /// <summary>
+            /// 编译为指定的委托类型
+            /// </summary>
+            /// <returns>按成员说明符编译的委托。</returns>
+            public TDelegate Compile();
+
+            /// <summary>
+            /// 编译为指定的委托类型并绑定到目标对象
+            /// </summary>
+            /// <typeparam name="T">目标对象的类型</typeparam>
+            /// <param name="target">要绑定的目标对象</param>
+            /// <returns>按成员说明符编译的委托。</returns>
+            /// <remarks>只有成员说明符的 <see cref="SpecifierBinding"/> 为 <see cref="SpecifierBinding.Close"/> 时，才能使用此方法。</remarks>
+            public TDelegate Compile<T>(T target);
         }
 
 

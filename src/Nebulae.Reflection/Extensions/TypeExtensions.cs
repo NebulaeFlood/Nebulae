@@ -1,5 +1,5 @@
-using Nebulae.Diagnostics;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Nebulae.Reflection.Extensions
@@ -17,7 +17,27 @@ namespace Nebulae.Reflection.Extensions
         /// <returns>表示指定构造函数的 <see cref="ConstructorInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
         public static ConstructorInfo? Constructor(this Type type, params Type[] parameterTypes)
         {
-            return type.GetConstructor(Reflector.DefaultLookup & ~BindingFlags.Static, binder: null, parameterTypes, modifiers: null);
+            return type.GetConstructor(
+                Reflector.DefaultLookup & ~BindingFlags.Static,
+                binder: null,
+                parameterTypes,
+                modifiers: null);
+        }
+
+        /// <summary>
+        /// 搜索指定的构造函数
+        /// </summary>
+        /// <param name="type">目标类型</param>
+        /// <param name="flags">搜索标志</param>
+        /// <param name="parameterTypes">函数参数类型</param>
+        /// <returns>表示指定构造函数的 <see cref="ConstructorInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
+        public static ConstructorInfo? Constructor(this Type type, BindingFlags flags, params Type[] parameterTypes)
+        {
+            return type.GetConstructor(
+                flags,
+                binder: null,
+                parameterTypes,
+                modifiers: null);
         }
 
         /// <summary>
@@ -32,6 +52,18 @@ namespace Nebulae.Reflection.Extensions
         }
 
         /// <summary>
+        /// 搜索指定的事件
+        /// </summary>
+        /// <param name="type">目标类型</param>
+        /// <param name="name">事件名称</param>
+        /// <param name="flags">搜索标志</param>
+        /// <returns>表示指定名称事件的 <see cref="EventInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
+        public static EventInfo? Event(this Type type, string name, BindingFlags flags)
+        {
+            return type.GetEvent(name, flags);
+        }
+
+        /// <summary>
         /// 搜索指定的字段
         /// </summary>
         /// <param name="type">目标类型</param>
@@ -43,53 +75,15 @@ namespace Nebulae.Reflection.Extensions
         }
 
         /// <summary>
-        /// 搜索指定的索引器
+        /// 搜索指定的字段
         /// </summary>
         /// <param name="type">目标类型</param>
-        /// <returns>表示索引器的 <see cref="PropertyInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
-        public static PropertyInfo? Indexer(this Type type)
+        /// <param name="name">字段名称</param>
+        /// <param name="flags">搜索标志</param>
+        /// <returns>表示指定名称字段的 <see cref="FieldInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
+        public static FieldInfo? Field(this Type type, string name, BindingFlags flags)
         {
-            var properties = type.GetProperties(Reflector.DefaultLookup);
-
-            for (int i = 0; i < properties.Length; i++)
-            {
-                var propertyInfo = properties[i];
-                var parameters = propertyInfo.GetIndexParameters();
-
-                if (parameters.Length > 0)
-                {
-                    return propertyInfo;
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// 搜索指定的索引器
-        /// </summary>
-        /// <param name="type">目标类型</param>
-        /// <param name="returnType">索引器的返回类型</param>
-        /// <returns>表示索引器的 <see cref="PropertyInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
-        public static PropertyInfo? Indexer(this Type type, Type returnType)
-        {
-            ThrowHelpers.ThrowIfArgumentNull(returnType);
-
-            var properties = type.GetProperties(Reflector.DefaultLookup);
-
-            for (int i = 0; i < properties.Length; i++)
-            {
-                var propertyInfo = properties[i];
-                var parameters = propertyInfo.GetIndexParameters();
-
-                if (parameters.Length > 0
-                    && propertyInfo.PropertyType == returnType)
-                {
-                    return propertyInfo;
-                }
-            }
-
-            return null;
+            return type.GetField(name, flags);
         }
 
         /// <summary>
@@ -97,67 +91,93 @@ namespace Nebulae.Reflection.Extensions
         /// </summary>
         /// <param name="type">目标类型</param>
         /// <param name="parameterTypes">索引器参数类型</param>
-        /// <returns>表示索引器的 <see cref="PropertyInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
-        public static PropertyInfo? Indexer(this Type type, params Type[]? parameterTypes)
+        /// <returns>表示指定索引器的 <see cref="PropertyInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
+        /// <remarks>仅支持搜索<b>遵循标准 C# 编译器成员生成约定</b>的索引器。</remarks>
+        public static PropertyInfo? Indexer(this Type type, params Type[] parameterTypes)
         {
-            ThrowHelpers.ThrowIfArgumentNull(parameterTypes);
+            const BindingFlags Lookup = BindingFlags.Instance |
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
-            var properties = type.GetProperties(Reflector.DefaultLookup);
+            IList<CustomAttributeData> attributes = type.GetCustomAttributesData();
+            int count = attributes.Count;
 
-            for (int i = 0; i < properties.Length; i++)
+            for (int i = 0; i < count; i++)
             {
-                var propertyInfo = properties[i];
-                var parameters = propertyInfo.GetIndexParameters();
+                CustomAttributeData data = attributes[i];
 
-                if (parameters.Length > 0
-                    && parameters.SequenceEqual(parameterTypes))
+                if (data.AttributeType != typeof(DefaultMemberAttribute))
                 {
-                    return propertyInfo;
+                    continue;
                 }
+
+                if (data.ConstructorArguments[0].Value is not string memberName)
+                {
+                    break;
+                }
+
+                return type.GetProperty(
+                    memberName,
+                    Lookup,
+                    binder: null,
+                    returnType: null,
+                    parameterTypes,
+                    modifiers: null)
+                    ?? type.BaseType?.Indexer(parameterTypes);
             }
 
-            return null;
+            return type.BaseType?.Indexer(parameterTypes);
         }
 
         /// <summary>
         /// 搜索指定的索引器
         /// </summary>
         /// <param name="type">目标类型</param>
-        /// <param name="returnType">索引器返回类型</param>
+        /// <param name="flags">搜索标志</param>
         /// <param name="parameterTypes">索引器参数类型</param>
-        /// <returns>表示索引器的 <see cref="PropertyInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
-        public static PropertyInfo? Indexer(this Type type, Type returnType, params Type[] parameterTypes)
+        /// <returns>表示指定索引器的 <see cref="PropertyInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
+        public static PropertyInfo? Indexer(this Type type, BindingFlags flags, params Type[] parameterTypes)
         {
-            ThrowHelpers.ThrowIfArgumentNull(returnType);
-            ThrowHelpers.ThrowIfArgumentNull(parameterTypes);
+            IList<CustomAttributeData> attributes = type.GetCustomAttributesData();
+            int count = attributes.Count;
 
-            var properties = type.GetProperties(Reflector.DefaultLookup);
+            PropertyInfo? indexer = null;
+            BindingFlags lookup = flags | BindingFlags.DeclaredOnly;
 
-            for (int i = 0; i < properties.Length; i++)
+            for (int i = 0; i < count; i++)
             {
-                var propertyInfo = properties[i];
-                var parameters = propertyInfo.GetIndexParameters();
+                CustomAttributeData data = attributes[i];
 
-                if (parameters.Length > 0
-                    && propertyInfo.PropertyType == returnType
-                    && parameters.SequenceEqual(parameterTypes))
+                if (data.AttributeType != typeof(DefaultMemberAttribute))
                 {
-                    return propertyInfo;
+                    continue;
                 }
+
+                if (data.ConstructorArguments[0].Value is not string memberName)
+                {
+                    break;
+                }
+
+                indexer = type.GetProperty(
+                    memberName,
+                    lookup,
+                    binder: null,
+                    returnType: null,
+                    parameterTypes,
+                    modifiers: null);
+                break;
             }
 
-            return null;
-        }
+            if (indexer is not null)
+            {
+                return indexer;
+            }
 
-        /// <summary>
-        /// 搜索指定的方法
-        /// </summary>
-        /// <param name="type">目标类型</param>
-        /// <param name="name">方法名称</param>
-        /// <returns>表示指定名称方法的 <see cref="MethodInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
-        public static MethodInfo? Method(this Type type, string name)
-        {
-            return type.GetMethod(name, Reflector.DefaultLookup);
+            if ((flags & BindingFlags.DeclaredOnly) != 0)
+            {
+                return null;
+            }
+
+            return type.BaseType?.Indexer(flags, parameterTypes);
         }
 
         /// <summary>
@@ -177,23 +197,45 @@ namespace Nebulae.Reflection.Extensions
                 modifiers: null);
         }
 
-
-        private static bool SequenceEqual(this ParameterInfo[] left, Type[] right)
+        /// <summary>
+        /// 搜索指定的方法
+        /// </summary>
+        /// <param name="type">目标类型</param>
+        /// <param name="name">方法名称</param>
+        /// <param name="flags">搜索标志</param>
+        /// <param name="parameterTypes">方法参数类型</param>
+        /// <returns>表示指定名称方法的 <see cref="MethodInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
+        public static MethodInfo? Method(this Type type, string name, BindingFlags flags, params Type[] parameterTypes)
         {
-            if (left.Length != right.Length)
-            {
-                return false;
-            }
+            return type.GetMethod(
+                name,
+                flags,
+                binder: null,
+                parameterTypes,
+                modifiers: null);
+        }
 
-            for (int i = 0; i < left.Length; i++)
-            {
-                if (left[i].ParameterType != right[i])
-                {
-                    return false;
-                }
-            }
+        /// <summary>
+        /// 搜索指定的属性
+        /// </summary>
+        /// <param name="type">目标类型</param>
+        /// <param name="name">属性名称</param>
+        /// <returns>表示指定名称属性的 <see cref="PropertyInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
+        public static PropertyInfo? Property(this Type type, string name)
+        {
+            return type.GetProperty(name, Reflector.DefaultLookup);
+        }
 
-            return true;
+        /// <summary>
+        /// 搜索指定的属性
+        /// </summary>
+        /// <param name="type">目标类型</param>
+        /// <param name="name">属性名称</param>
+        /// <param name="flags">搜索标志</param>
+        /// <returns>表示指定名称属性的 <see cref="PropertyInfo"/>；若未找到，则返回 <see langword="null"/>。</returns>
+        public static PropertyInfo? Property(this Type type, string name, BindingFlags flags)
+        {
+            return type.GetProperty(name, flags);
         }
     }
 }

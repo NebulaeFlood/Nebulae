@@ -1,6 +1,6 @@
 namespace Tests.Reflection.Fixtures;
 
-internal sealed class ReflectionTarget
+internal class ReflectionTarget
 {
     public ReflectionTarget(int value)
     {
@@ -24,9 +24,16 @@ internal sealed class ReflectionTarget
 
     public static int StaticValue { get; set; }
 
+    public static int StaticWriteOnlyValue
+    {
+        set => StaticValue = value;
+    }
+
     public string this[int index] => $"{Label}:{index}";
 
     public int this[string value] => value.Length;
+
+    private string this[long index] => $"hidden:{index}";
 
     public event EventHandler? Changed;
 
@@ -46,19 +53,21 @@ internal sealed class ReflectionTarget
 
     public int Offset(int value) => Value + value;
 
+    public virtual int VirtualOffset(int value) => Value + value;
+
     public int TextLength(string value) => Value + value.Length;
 
     public static int Multiply(int left, int right) => left * right;
 
-    public void RaiseChanged() => Changed?.Invoke(this, EventArgs.Empty);
+    public static void Increment(ref int value) => value++;
+
+    public void RaiseHiddenChanged() => _hiddenChanged?.Invoke(this, EventArgs.Empty);
 
     public int GetFieldValue() => _fieldValue;
 
-    public void SetFieldValue(int value) => _fieldValue = value;
-
     public static int GetStaticFieldValue() => _staticFieldValue;
 
-    public static void SetStaticFieldValue(int value) => _staticFieldValue = value;
+    private string Describe() => $"{Label}:none";
 
     private string Describe(int value) => $"{Label}:number:{value}";
 
@@ -69,4 +78,28 @@ internal sealed class ReflectionTarget
     private int _fieldValue;
 
     private static int _staticFieldValue = 7;
+}
+
+internal sealed class DerivedReflectionTarget(int value) : ReflectionTarget(value)
+{
+    public override int VirtualOffset(int argument) => (Value * 10) + argument;
+}
+
+internal class IndexerBase
+{
+    public string this[int index] => $"base:{index}";
+
+    private string this[string index] => $"private:{index}";
+}
+
+internal sealed class IndexerDerived : IndexerBase
+{
+    public string this[Guid index] => $"derived:{index}";
+}
+
+internal sealed class DefaultBinderTarget(long value)
+{
+    public string this[long index] => $"item:{value + index}";
+
+    public long Accept(long argument) => value + argument;
 }

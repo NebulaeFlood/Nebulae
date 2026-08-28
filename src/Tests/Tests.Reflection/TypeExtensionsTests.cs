@@ -9,74 +9,71 @@ namespace Tests.Reflection;
 public sealed class TypeExtensionsTests
 {
     [TestMethod]
-    public void LookupHelpers_PrivateMembers_ReturnRequestedMembers()
+    public void Indexer_MissingDerivedOverloadFallsBackToBaseType()
     {
-        Type targetType = typeof(ReflectionTarget);
+        PropertyInfo? declared = typeof(IndexerDerived).Indexer(typeof(Guid));
+        PropertyInfo? inherited = typeof(IndexerDerived).Indexer(typeof(int));
+        PropertyInfo? inheritedPrivate = typeof(IndexerDerived).Indexer(
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            typeof(string));
 
-        ConstructorInfo? constructor = targetType.Constructor(typeof(int), typeof(string));
-        MethodInfo? method = targetType.Method("Describe", typeof(int));
-        FieldInfo? field = targetType.Field("_fieldValue");
-        EventInfo? eventInfo = targetType.Event("HiddenChanged");
-
-        Assert.IsNotNull(constructor);
-        Assert.AreEqual(typeof(int), constructor.GetParameters()[0].ParameterType);
-        Assert.AreEqual(typeof(string), constructor.GetParameters()[1].ParameterType);
-        Assert.IsNotNull(method);
-        Assert.AreEqual(typeof(int), method.GetParameters()[0].ParameterType);
-        Assert.IsNotNull(field);
-        Assert.AreEqual(typeof(int), field.FieldType);
-        Assert.IsNotNull(eventInfo);
-        Assert.AreEqual(typeof(EventHandler), eventInfo.EventHandlerType);
+        Assert.AreEqual(typeof(IndexerDerived), declared?.DeclaringType);
+        Assert.AreEqual(typeof(IndexerBase), inherited?.DeclaringType);
+        Assert.AreEqual(typeof(IndexerBase), inheritedPrivate?.DeclaringType);
     }
 
     [TestMethod]
-    public void Indexer_ReturnAndParameterFilters_SelectMatchingIndexer()
+    public void Indexer_DeclaredOnlyPreventsBaseTypeFallback()
     {
-        Type targetType = typeof(ReflectionTarget);
+        const BindingFlags declaredPublic = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
-        PropertyInfo? integerIndexer = targetType.Indexer(typeof(string), typeof(int));
-        PropertyInfo? stringIndexer = targetType.Indexer(typeof(int), typeof(string));
-
-        Assert.IsNotNull(integerIndexer);
-        Assert.AreEqual(typeof(string), integerIndexer.PropertyType);
-        Assert.AreEqual(typeof(int), integerIndexer.GetIndexParameters()[0].ParameterType);
-        Assert.IsNotNull(stringIndexer);
-        Assert.AreEqual(typeof(int), stringIndexer.PropertyType);
-        Assert.AreEqual(typeof(string), stringIndexer.GetIndexParameters()[0].ParameterType);
+        Assert.IsNull(typeof(IndexerDerived).Indexer(declaredPublic, typeof(int)));
+        Assert.AreEqual(
+            typeof(IndexerDerived),
+            typeof(IndexerDerived).Indexer(declaredPublic, typeof(Guid))?.DeclaringType);
     }
 
     [TestMethod]
-    public void IsCompatible_ExactAndAssignableReferenceTypes_ReturnExpectedClassification()
+    public void IsStatic_UsesNonPublicAndSingleAvailableAccessors()
+    {
+        Type targetType = typeof(ReflectionTarget);
+        PropertyInfo instanceProperty = targetType.Property("HiddenValue")!;
+        PropertyInfo staticWriteOnly = targetType.Property(nameof(ReflectionTarget.StaticWriteOnlyValue))!;
+        EventInfo instanceEvent = targetType.Event("HiddenChanged")!;
+        EventInfo staticEvent = targetType.Event(nameof(ReflectionTarget.StaticChanged))!;
+
+        Assert.IsFalse(instanceProperty.IsStatic());
+        Assert.IsTrue(staticWriteOnly.IsStatic());
+        Assert.IsFalse(instanceEvent.IsStatic());
+        Assert.IsTrue(staticEvent.IsStatic());
+    }
+
+    [TestMethod]
+    public void IsCompatible_ExactValueAndAssignableReferenceTypesAreCompatible()
     {
         Assert.IsTrue(Reflector.IsCompatible(typeof(int), typeof(int)));
         Assert.IsTrue(Reflector.IsCompatible(typeof(CompatibilityBase), typeof(CompatibilityDerived)));
-        Assert.IsFalse(Reflector.IsCompatible(typeof(CompatibilityDerived), typeof(CompatibilityBase)));
-        Assert.IsFalse(Reflector.IsCompatible(typeof(object), typeof(int)));
+        Assert.IsTrue(Reflector.IsCompatible(typeof(IDisposable), typeof(MemoryStream)));
     }
 
     [TestMethod]
-    public void IsNullable_NullableAndNonNullableTypes_ReturnExpectedClassification()
+    public void IsCompatible_ReverseReferenceAndNonExactValueTypesAreNotCompatible()
     {
+        Assert.IsFalse(Reflector.IsCompatible(typeof(CompatibilityDerived), typeof(CompatibilityBase)));
+        Assert.IsFalse(Reflector.IsCompatible(typeof(long), typeof(int)));
+        Assert.IsFalse(Reflector.IsCompatible(typeof(object), typeof(int)));
+        Assert.IsFalse(Reflector.IsCompatible(typeof(int), typeof(object)));
+    }
+
+    [TestMethod]
+    public void IsNullable_RecognizesOpenAndConstructedNullableOnly()
+    {
+        Assert.IsTrue(typeof(Nullable<>).IsNullable());
         Assert.IsTrue(typeof(int?).IsNullable());
         Assert.IsFalse(typeof(int).IsNullable());
         Assert.IsFalse(typeof(string).IsNullable());
     }
 
-    [TestMethod]
-    public void IsStatic_InstanceAndStaticMembers_ReturnExpectedClassification()
-    {
-        const BindingFlags lookup = Reflector.DefaultLookup;
-        Type targetType = typeof(ReflectionTarget);
-        PropertyInfo instanceProperty = targetType.GetProperty(nameof(ReflectionTarget.Value), lookup)!;
-        PropertyInfo staticProperty = targetType.GetProperty(nameof(ReflectionTarget.StaticValue), lookup)!;
-        EventInfo instanceEvent = targetType.GetEvent(nameof(ReflectionTarget.Changed), lookup)!;
-        EventInfo staticEvent = targetType.GetEvent(nameof(ReflectionTarget.StaticChanged), lookup)!;
-
-        Assert.IsFalse(instanceProperty.IsStatic());
-        Assert.IsTrue(staticProperty.IsStatic());
-        Assert.IsFalse(instanceEvent.IsStatic());
-        Assert.IsTrue(staticEvent.IsStatic());
-    }
 
     private class CompatibilityBase;
 

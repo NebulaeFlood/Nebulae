@@ -80,7 +80,7 @@ namespace Nebulae.Reflection.Specifiers
         public SpecifierBinding Binding
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => (SpecifierBinding)((_flags & Specifier.BindingMask) >> 6);
+            get => Specifier.GetBinding(_flags);
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace Nebulae.Reflection.Specifiers
         public SpecifierCulture Culture
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => (SpecifierCulture)((_flags & Specifier.CultureMask) >> 3);
+            get => Specifier.GetCulture(_flags);
         }
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace Nebulae.Reflection.Specifiers
         public SpecifierPolicy Policy
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => (SpecifierPolicy)((_flags & Specifier.PolicyMask) >> 7);
+            get => Specifier.GetPolicy(_flags);
         }
 
         #endregion
@@ -128,7 +128,7 @@ namespace Nebulae.Reflection.Specifiers
 
             if (memberInfo.IsStatic)
             {
-                _flags = Specifier.BindingMask;
+                _flags = Specifier.Close(default);
             }
         }
 
@@ -160,9 +160,7 @@ namespace Nebulae.Reflection.Specifiers
         public override bool Equals(object? obj)
         {
             return obj is FieldSpecifier other
-                && _flags == other._flags
-                && Target == other.Target
-                && MemberInfo == other.MemberInfo;
+                && Equals(this, other);
         }
 
         /// <summary>
@@ -173,7 +171,7 @@ namespace Nebulae.Reflection.Specifiers
         public bool Equals(FieldSpecifier other)
         {
             return _flags == other._flags
-                && Target == other.Target
+                && Equals(Target, other.Target)
                 && MemberInfo == other.MemberInfo;
         }
 
@@ -228,8 +226,8 @@ namespace Nebulae.Reflection.Specifiers
         {
             return new FieldSpecifier(
                 MemberInfo,
-                target: target,
-                flags: (byte)(_flags | Specifier.BindingMask));
+                target,
+                Specifier.Close(_flags));
         }
 
         /// <summary>
@@ -241,7 +239,7 @@ namespace Nebulae.Reflection.Specifiers
             return new FieldSpecifier(
                 MemberInfo,
                 target: null,
-                flags: (byte)(_flags & ~Specifier.BindingMask));
+                Specifier.Open(_flags));
         }
 
         /// <summary>
@@ -252,8 +250,8 @@ namespace Nebulae.Reflection.Specifiers
         {
             return new FieldSpecifier(
                 MemberInfo,
-                target: Target,
-                flags: (byte)((_flags & ~ModeMask) | (int)FieldSpecifierMode.Get));
+                Target,
+                (byte)((_flags & ~ModeMask) | (int)FieldSpecifierMode.Get));
         }
 
         /// <summary>
@@ -264,8 +262,8 @@ namespace Nebulae.Reflection.Specifiers
         {
             return new FieldSpecifier(
                 MemberInfo,
-                target: Target,
-                flags: (byte)((_flags & ~ModeMask) | (int)FieldSpecifierMode.Set));
+                Target,
+                (byte)((_flags & ~ModeMask) | (int)FieldSpecifierMode.Set));
         }
 
         /// <summary>
@@ -277,8 +275,8 @@ namespace Nebulae.Reflection.Specifiers
             // FieldSpecifierMode.Ref == 0B11;
             return new FieldSpecifier(
                 MemberInfo,
-                target: Target,
-                flags: (byte)(_flags | (int)FieldSpecifierMode.Ref));
+                Target,
+                (byte)(_flags | (int)FieldSpecifierMode.Ref));
         }
 
         /// <summary>
@@ -289,8 +287,8 @@ namespace Nebulae.Reflection.Specifiers
         {
             return new FieldSpecifier(
                 MemberInfo,
-                target: Target,
-                flags: (byte)(_flags | Specifier.PolicyMask));
+                Target,
+                Specifier.Lenient(_flags));
         }
 
         /// <summary>
@@ -302,8 +300,8 @@ namespace Nebulae.Reflection.Specifiers
         {
             return new FieldSpecifier(
                 MemberInfo,
-                target: Target,
-                flags: (byte)((_flags & ~Specifier.CultureMask) | ((int)culture << 3) | Specifier.PolicyMask));
+                Target,
+                Specifier.Lenient(_flags, culture));
         }
 
         /// <summary>
@@ -314,8 +312,8 @@ namespace Nebulae.Reflection.Specifiers
         {
             return new FieldSpecifier(
                 MemberInfo,
-                target: Target,
-                flags: (byte)(_flags & ~Specifier.PolicyMask));
+                Target,
+                Specifier.Strict(_flags));
         }
 
         /// <summary>
@@ -340,8 +338,8 @@ namespace Nebulae.Reflection.Specifiers
             {
                 CompilerHelpers.VerifyBindingTarget(this);
 
-                Verification verification = CompilerHelpers.VerifyDelegate<T>(this);
-                DynamicMethod invoker = CompilerHelpers.CreateInvoker(this, verification);
+                SpecifierInvokerInfo invokerInfo = CompilerHelpers.VerifyDelegate<T>(this);
+                DynamicMethod invoker = CompilerHelpers.CreateInvoker(this, invokerInfo);
 
                 return IsOpen ? invoker.CreateDelegate<T>() : invoker.CreateDelegate<T>(Target);
             }
@@ -349,7 +347,6 @@ namespace Nebulae.Reflection.Specifiers
             {
                 throw new InvalidOperationException(
                     $"Cannot compile field '{MemberInfo.AsLog()}' " +
-                    $"of type '{MemberInfo.FieldType.AsLog()}' " +
                     $"to delegate type '{typeof(T).AsLog()}'.", e);
             }
         }
@@ -363,31 +360,20 @@ namespace Nebulae.Reflection.Specifiers
         {
             try
             {
-                if (IsOpen)
+                if (Target != Specifier.Defer)
                 {
-                    Verification verification = CompilerHelpers.VerifyDelegate<T>(this);
-                    DynamicMethod invoker = CompilerHelpers.CreateInvoker(this, verification);
-                    return new Compiler<T>(this, invoker);
+                    CompilerHelpers.VerifyBindingTarget(this);
                 }
-                else
-                {
-                    object? target = Target;
 
-                    if (target != Specifier.Defer)
-                    {
-                        CompilerHelpers.VerifyBindingTarget(target, MemberInfo);
-                    }
+                SpecifierInvokerInfo invokerInfo = CompilerHelpers.VerifyDelegate<T>(this);
+                DynamicMethod invoker = CompilerHelpers.CreateInvoker(this, invokerInfo);
 
-                    Verification verification = CompilerHelpers.VerifyDelegate<T>(this);
-                    DynamicMethod invoker = CompilerHelpers.CreateInvoker(this, verification);
-                    return new Compiler<T>(this, invoker);
-                }
+                return new Compiler<T>(this, invoker);
             }
             catch (Exception e)
             {
                 throw new InvalidOperationException(
-                    $"Cannot specify field '{MemberInfo.AsLog()}' " +
-                    $"of type '{MemberInfo.FieldType.AsLog()}' as a compiler " +
+                    $"Cannot specify field '{MemberInfo.AsLog()}' as a compiler " +
                     $"with delegate type '{typeof(T).AsLog()}'.", e);
             }
         }
@@ -406,13 +392,13 @@ namespace Nebulae.Reflection.Specifiers
         private bool IsOpen
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => (_flags & Specifier.BindingMask) == 0;
+            get => Specifier.IsOpen(_flags);
         }
 
         private bool IsStrict
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => (_flags & Specifier.PolicyMask) == 0;
+            get => Specifier.IsStrict(_flags);
         }
 
         private ParameterInfo[] Parameters
@@ -471,9 +457,7 @@ namespace Nebulae.Reflection.Specifiers
         /// <returns>若两个 <see cref="FieldSpecifier"/> 相等，返回 <see langword="true"/>；反之则返回 <see langword="false"/>。</returns>
         public static bool operator ==(FieldSpecifier left, FieldSpecifier right)
         {
-            return left._flags == right._flags
-                && left.Target == right.Target
-                && left.MemberInfo == right.MemberInfo;
+            return left.Equals(right);
         }
 
         /// <summary>
@@ -484,9 +468,7 @@ namespace Nebulae.Reflection.Specifiers
         /// <returns>若两个 <see cref="FieldSpecifier"/> 不等，返回 <see langword="true"/>；反之则返回 <see langword="false"/>。</returns>
         public static bool operator !=(FieldSpecifier left, FieldSpecifier right)
         {
-            return left._flags != right._flags
-                || left.Target != right.Target
-                || left.MemberInfo != right.MemberInfo;
+            return !left.Equals(right);
         }
 
         #endregion
@@ -495,8 +477,9 @@ namespace Nebulae.Reflection.Specifiers
         /// <summary>
         /// <see cref="FieldSpecifier"/> 的编译器
         /// </summary>
-        /// <typeparam name="T">委托类型</typeparam>
-        public sealed class Compiler<T> where T : Delegate
+        /// <typeparam name="TDelegate">委托类型</typeparam>
+        public sealed class Compiler<TDelegate> : Specifier.ICompiler<TDelegate>
+            where TDelegate : Delegate
         {
             /// <summary>
             /// 关联的 <see cref="FieldSpecifier"/>
@@ -533,39 +516,37 @@ namespace Nebulae.Reflection.Specifiers
             /// <summary>
             /// 编译为指定的委托类型
             /// </summary>
-            /// <returns>由 <see cref="Specifier"/> 编译的委托。</returns>
-            public T Compile()
+            /// <returns>按 <see cref="Specifier"/> 编译的委托。</returns>
+            public TDelegate Compile()
             {
                 try
                 {
                     if (Specifier.IsOpen)
                     {
-                        return _invoker.CreateDelegate<T>();
+                        return _invoker.CreateDelegate<TDelegate>();
                     }
-                    else
-                    {
-                        object? target = Specifier.Target;
 
-                        SpecifierVerifier.ThrowIfDeferTarget(target);
-                        return _invoker.CreateDelegate<T>(target);
-                    }
+                    object? target = Specifier.Target;
+                    SpecifierVerifier.ThrowIfDeferTarget(target);
+
+                    return _invoker.CreateDelegate<TDelegate>(target);
                 }
                 catch (Exception e)
                 {
                     throw new InvalidOperationException(
                         $"Cannot compile field '{Specifier.MemberInfo.AsLog()}' " +
-                        $"of type '{Specifier.MemberInfo.FieldType.AsLog()}' " +
-                        $"to delegate type '{typeof(T).AsLog()}'.", e);
+                        $"to delegate type '{typeof(TDelegate).AsLog()}'.", e);
                 }
             }
 
             /// <summary>
             /// 编译为指定的委托类型并绑定到目标对象
             /// </summary>
+            /// <typeparam name="T">目标对象的类型</typeparam>
             /// <param name="target">要绑定的目标对象</param>
-            /// <returns>由 <see cref="Specifier"/> 编译的委托。</returns>
+            /// <returns>按 <see cref="Specifier"/> 编译的委托。</returns>
             /// <remarks>只有 <see cref="Binding"/> 为 <see cref="SpecifierBinding.Close"/> 时，才能使用此方法。</remarks>
-            public T Compile(object? target)
+            public TDelegate Compile<T>(T target)
             {
                 if (Specifier.IsOpen)
                 {
@@ -577,15 +558,17 @@ namespace Nebulae.Reflection.Specifiers
                 try
                 {
                     SpecifierVerifier.ThrowIfDeferTarget(target);
-                    CompilerHelpers.VerifyBindingTarget(target, Specifier.MemberInfo);
-                    return _invoker.CreateDelegate<T>(target);
+
+                    FieldInfo member = Specifier.MemberInfo;
+                    SpecifierVerifier.VerifyBindingTarget(target, member, member.IsStatic);
+
+                    return _invoker.CreateDelegate<TDelegate>(target);
                 }
                 catch (Exception e)
                 {
                     throw new InvalidOperationException(
                         $"Cannot compile field '{Specifier.MemberInfo.AsLog()}' " +
-                        $"of type '{Specifier.MemberInfo.FieldType.AsLog()}' " +
-                        $"to delegate type '{typeof(T).AsLog()}'.", e);
+                        $"to delegate type '{typeof(TDelegate).AsLog()}'.", e);
                 }
             }
 
@@ -595,24 +578,30 @@ namespace Nebulae.Reflection.Specifiers
             private readonly DynamicMethod _invoker;
         }
 
+
         private static class CompilerHelpers
         {
-            public static DynamicMethod CreateInvoker(in FieldSpecifier specifier, Verification verification)
+            public static DynamicMethod CreateInvoker(in FieldSpecifier specifier, in SpecifierInvokerInfo invokerInfo)
             {
+                Debug.Assert(invokerInfo.IsDynamic, "Field invokers must be dynamic.");
+
+                SpecifierCulture culture = specifier.Culture;
                 FieldInfo member = specifier.MemberInfo;
                 FieldSpecifierMode mode = specifier.Mode;
 
-                Type[] parameterTypes = verification.ParameterTypes;
-                Type returnType = verification.ReturnType;
+                SpecifierInvokerInfo.DelegateInfo delegateInfo = invokerInfo.Delegate;
+                SpecifierInvokerInfo.ArgumentInfo[] arguments = invokerInfo.Arguments!;
+
+                Type[] parameterTypes = invokerInfo.ParameterTypes!;
 
                 DynamicMethod invoker = new(
                     GetNameBuilder(member, mode).ToString(),
-                    returnType,
+                    delegateInfo.ReturnType,
                     parameterTypes,
                     restrictedSkipVisibility: true);
                 ILGenerator il = invoker.GetILGenerator();
 
-                if (!member.IsStatic)
+                if (!invokerInfo.IsStatic)
                 {
                     il.EmitLdtarg(parameterTypes[0], member.DeclaringType!, 0);
                 }
@@ -620,72 +609,79 @@ namespace Nebulae.Reflection.Specifiers
                 switch (mode)
                 {
                     case FieldSpecifierMode.Get:
-                        if (verification.ReturnCompatible)
+                        if (invokerInfo.Return.IsCompatible)
                         {
-                            il.Emit(member.IsStatic ? OpCodes.Ldsfld : OpCodes.Ldfld, member);
+                            il.Emit(invokerInfo.IsStatic ? OpCodes.Ldsfld : OpCodes.Ldfld, member);
                             break;
                         }
 
                         if (member.FieldType.IsValueType)
                         {
-                            il.Emit(member.IsStatic ? OpCodes.Ldsflda : OpCodes.Ldflda, member);
-                            il.EmitConv(member.FieldType.MakeByRefType(), returnType, specifier.Culture);
+                            il.Emit(invokerInfo.IsStatic ? OpCodes.Ldsflda : OpCodes.Ldflda, member);
+                            il.EmitConv(member.FieldType.MakeByRefType(), delegateInfo.ReturnType, culture);
                         }
                         else
                         {
                             il.Emit(member.IsStatic ? OpCodes.Ldsfld : OpCodes.Ldfld, member);
-                            il.EmitConv(member.FieldType, returnType, specifier.Culture);
+                            il.EmitConv(invokerInfo.Return.Type, delegateInfo.ReturnType, culture);
                         }
 
                         break;
                     case FieldSpecifierMode.Set:
-                        if (verification.ParameterCompatible)
+                        ref readonly SpecifierInvokerInfo.ArgumentInfo argument = ref arguments[0];
+
+                        Debug.Assert(
+                            argument.Source is SpecifierInvokerInfo.ArgumentSource.Parameter,
+                            "Field set arguments must come from delegate parameters.");
+
+                        short sourceIndex = (short)argument.SourceIndex;
+
+                        if (argument.IsCompatible)
                         {
-                            il.Emit(OpCodes.Ldarg_1);
+                            il.EmitLdarg(sourceIndex);
                         }
                         else
                         {
-                            Type parameterType = parameterTypes[1];
+                            Type sourceType = argument.ArgumentType;
 
-                            if (parameterType.IsValueType)
+                            if (sourceType.IsValueType)
                             {
-                                parameterType = parameterType.MakeByRefType();
+                                sourceType = sourceType.MakeByRefType();
 
-                                il.Emit(OpCodes.Ldarga_S, 1);
+                                il.Emit(OpCodes.Ldarga_S, sourceIndex);
                             }
                             else
                             {
-                                il.Emit(OpCodes.Ldarg_1);
+                                il.EmitLdarg(sourceIndex);
                             }
 
-                            il.EmitConv(parameterType, member.FieldType, specifier.Culture);
+                            il.EmitConv(sourceType, argument.ParameterType, culture);
                         }
 
-                        il.Emit(member.IsStatic ? OpCodes.Stsfld : OpCodes.Stfld, member);
+                        il.Emit(invokerInfo.IsStatic ? OpCodes.Stsfld : OpCodes.Stfld, member);
                         break;
                     case FieldSpecifierMode.Ref:
-                        il.Emit(member.IsStatic ? OpCodes.Ldsflda : OpCodes.Ldflda, member);
+                        il.Emit(invokerInfo.IsStatic ? OpCodes.Ldsflda : OpCodes.Ldflda, member);
                         break;
                     default:
-                        throw new NotSupportedException($"Cannot compile delegate because mode '{mode}' is not supported.");
+                        throw new NotSupportedException(
+                            $"Compile mode '{mode}' is not supported.");
                 }
 
                 il.Emit(OpCodes.Ret);
                 return invoker;
             }
 
-            public static StringBuilder GetNameBuilder(FieldInfo field, FieldSpecifierMode mode)
+            public static StringBuilder GetNameBuilder(FieldInfo member, FieldSpecifierMode mode)
             {
                 return new StringBuilder(128)
-                    .Format(field.FieldType)
-                    .Append(' ')
                     .Format(typeof(Reflector))
                     .Append('.')
                     .Append(mode)
                     .Append("<>")
-                    .Format(field.DeclaringType!)
+                    .Format(member.DeclaringType!)
                     .Append('.')
-                    .Format(field.Name);
+                    .Format(member.Name);
             }
 
             public static void VerifyBindingTarget(in FieldSpecifier specifier)
@@ -696,152 +692,109 @@ namespace Nebulae.Reflection.Specifiers
                 }
 
                 object? target = specifier.Target;
-
                 SpecifierVerifier.ThrowIfDeferTarget(target);
-                VerifyBindingTarget(target, specifier.MemberInfo);
+
+                FieldInfo member = specifier.MemberInfo;
+                SpecifierVerifier.VerifyBindingTarget(target, member, member.IsStatic);
             }
 
-            public static void VerifyBindingTarget(object? target, FieldInfo field)
-            {
-                if (target is null)
-                {
-                    if (!field.IsStatic)
-                    {
-                        throw new ArgumentException(
-                            $"Expects a non-null target object " +
-                            $"for instance field '{field.AsLog()}', " +
-                            $"but received '{DiagnosticHelpers.Null}'.");
-                    }
-                }
-                else if (field.IsStatic)
-                {
-                    throw new ArgumentException(
-                        $"Expects a null target object " +
-                        $"for static field '{field.AsLog()}', " +
-                        $"but received object '{target.AsLog()}'.");
-                }
-                else
-                {
-                    Type targetType = target.GetType();
-                    Type declaringType = field.DeclaringType!;
-
-                    if (!declaringType.IsAssignableFrom(targetType))
-                    {
-                        throw new ArgumentException(
-                            $"Expects a target object of type '{declaringType.AsLog()}' " +
-                            $"for instance field '{field.AsLog()}', " +
-                            $"but received object '{target.AsLog()}' of type '{targetType.AsLog()}'.");
-                    }
-                }
-            }
-
-            public static Verification VerifyDelegate<T>(in FieldSpecifier specifier)
+            public static SpecifierInvokerInfo VerifyDelegate<T>(in FieldSpecifier specifier)
                 where T : Delegate
             {
-                Type delegateType = typeof(T);
+                SpecifierInvokerInfo.DelegateInfo delegateInfo = SpecifierVerifier.VerifyDelegate<T>();
+                FieldInfo member = specifier.MemberInfo;
 
-                if (delegateType.IsAbstract)
-                {
-                    throw new ArgumentException(
-                        $"Cannot compile to abstract delegate type '{delegateType.AsLog()}'.");
-                }
+                Type returnType = delegateInfo.ReturnType;
+                Type memberType = member.FieldType;
 
-                MethodInfo invocation = delegateType.GetMethod("Invoke", BindingFlags.Instance | BindingFlags.Public)
-                    ?? throw new NotSupportedException(
-                        $"Cannot compile to delegate type '{delegateType.AsLog()}', " +
-                        $"because it does not have any method named 'Invoke'.");
-
-                Type returnType = invocation.ReturnType;
-                Type memberType = specifier.MemberInfo.FieldType;
-
-                ParameterInfo[] invokerParameters;
+                ParameterInfo[] delegateParameters = delegateInfo.Parameters;
                 Type targetType;
 
                 switch (specifier.Mode)
                 {
                     case FieldSpecifierMode.Get:
-                        invokerParameters = invocation.GetParameters();
-
                         if (specifier.IsOpen)
                         {
-                            if (invokerParameters.Length is not 1)
+                            if (delegateParameters.Length is not 1)
                             {
                                 throw new ArgumentException(
-                                    $"Expects exactly 1 parameter " +
+                                    $"Expects exactly 1 delegate parameter " +
                                     $"in compile mode '{nameof(FieldSpecifierMode.Get)}' " +
                                     $"when the target is not bound, " +
-                                    $"but received {invokerParameters.Length} parameter(s).");
+                                    $"but received {delegateParameters.Length} parameter(s).");
                             }
 
-                            targetType = specifier.MemberInfo.IsStatic
-                                ? typeof(object)
-                                : invokerParameters[0].ParameterType;
+                            targetType = delegateParameters[0].ParameterType;
                         }
                         else
                         {
-                            if (invokerParameters.Length is not 0)
+                            if (delegateParameters.Length is not 0)
                             {
                                 throw new ArgumentException(
-                                    $"Expects exactly 0 parameter " +
+                                    $"Expects exactly 0 delegate parameters " +
                                     $"in compile mode '{nameof(FieldSpecifierMode.Get)}' " +
                                     $"when the target is bound, " +
-                                    $"but received {invokerParameters.Length} parameter(s).");
+                                    $"but received {delegateParameters.Length} parameter(s).");
                             }
 
-                            targetType = specifier.MemberInfo.IsStatic
+                            targetType = member.IsStatic
                                 ? typeof(object)
-                                : specifier.MemberInfo.DeclaringType!;
+                                : member.DeclaringType!;
                         }
 
-                        return new Verification(
-                            [targetType],
-                            true,
-                            returnType,
-                            SpecifierVerifier.VerifyReturnType(
+                        return new SpecifierInvokerInfo(
+                            delegateInfo,
+                            isStatic: member.IsStatic,
+                            parameterTypes: [targetType],
+                            arguments: [],
+                            SpecifierVerifier.VerifyReturn(
                                 returnType, memberType, specifier.IsStrict));
                     case FieldSpecifierMode.Set:
-                        invokerParameters = invocation.GetParameters();
                         Type valueType;
 
                         if (specifier.IsOpen)
                         {
-                            if (invokerParameters.Length is not 2)
+                            if (delegateParameters.Length is not 2)
                             {
                                 throw new ArgumentException(
-                                    $"Expects exactly 2 parameters " +
+                                    $"Expects exactly 2 delegate parameters " +
                                     $"in compile mode '{nameof(FieldSpecifierMode.Set)}' " +
                                     $"when the target is not bound, " +
-                                    $"but received {invokerParameters.Length} parameter(s).");
+                                    $"but received {delegateParameters.Length} parameter(s).");
                             }
 
-                            targetType = specifier.MemberInfo.IsStatic
-                                ? typeof(object)
-                                : invokerParameters[0].ParameterType;
-                            valueType = invokerParameters[1].ParameterType;
+                            targetType = delegateParameters[0].ParameterType;
+                            valueType = delegateParameters[1].ParameterType;
                         }
                         else
                         {
-                            if (invokerParameters.Length is not 1)
+                            if (delegateParameters.Length is not 1)
                             {
                                 throw new ArgumentException(
-                                    $"Expects exactly 1 parameter " +
+                                    $"Expects exactly 1 delegate parameter " +
                                     $"in compile mode '{nameof(FieldSpecifierMode.Set)}' " +
                                     $"when the target is bound, " +
-                                    $"but received {invokerParameters.Length} parameter(s).");
+                                    $"but received {delegateParameters.Length} parameter(s).");
                             }
 
-                            targetType = specifier.MemberInfo.IsStatic
+                            targetType = member.IsStatic
                                 ? typeof(object)
-                                : specifier.MemberInfo.DeclaringType!;
-                            valueType = invokerParameters[0].ParameterType;
+                                : member.DeclaringType!;
+                            valueType = delegateParameters[0].ParameterType;
                         }
 
-                        return new Verification(
-                            [targetType, valueType],
-                            SpecifierVerifier.VerifyArgumentType(
-                                valueType, memberType, specifier.IsStrict, 1),
-                            returnType,
-                            SpecifierVerifier.VerifyReturnType(
+                        return new SpecifierInvokerInfo(
+                            delegateInfo,
+                            isStatic: member.IsStatic,
+                            parameterTypes: [targetType, valueType],
+                            arguments: [new SpecifierInvokerInfo.ArgumentInfo(
+                                SpecifierInvokerInfo.ArgumentSource.Parameter,
+                                1,
+                                valueType,
+                                memberType,
+                                SpecifierVerifier.VerifyArgumentType(
+                                    valueType, memberType, specifier.IsStrict, 1))],
+                            SpecifierVerifier.VerifyReturn(
                                 returnType, typeof(void), specifier.IsStrict));
                     case FieldSpecifierMode.Ref:
                         if (!memberType.IsByRef)
@@ -849,65 +802,47 @@ namespace Nebulae.Reflection.Specifiers
                             memberType = memberType.MakeByRefType();
                         }
 
-                        invokerParameters = invocation.GetParameters();
-
                         if (specifier.IsOpen)
                         {
-                            if (invokerParameters.Length is not 1)
+                            if (delegateParameters.Length is not 1)
                             {
                                 throw new ArgumentException(
-                                    $"Expects exactly 1 parameter " +
+                                    $"Expects exactly 1 delegate parameter " +
                                     $"in compile mode '{nameof(FieldSpecifierMode.Ref)}' " +
                                     $"when the target is not bound, " +
-                                    $"but received {invokerParameters.Length} parameter(s).");
+                                    $"but received {delegateParameters.Length} parameter(s).");
                             }
 
-                            targetType = specifier.MemberInfo.IsStatic
-                                ? typeof(object)
-                                : invokerParameters[0].ParameterType;
+                            targetType = delegateParameters[0].ParameterType;
                         }
                         else
                         {
-                            if (invokerParameters.Length is not 0)
+                            if (delegateParameters.Length is not 0)
                             {
                                 throw new ArgumentException(
-                                    $"Expects exactly 0 parameter " +
+                                    $"Expects exactly 0 delegate parameters " +
                                     $"in compile mode '{nameof(FieldSpecifierMode.Ref)}' " +
                                     $"when the target is bound, " +
-                                    $"but received {invokerParameters.Length} parameter(s).");
+                                    $"but received {delegateParameters.Length} parameter(s).");
                             }
 
-                            targetType = specifier.MemberInfo.IsStatic
+                            targetType = member.IsStatic
                                 ? typeof(object)
-                                : specifier.MemberInfo.DeclaringType!;
+                                : member.DeclaringType!;
                         }
 
-                        return new Verification(
-                            [targetType],
-                            true,
-                            returnType,
-                            SpecifierVerifier.VerifyReturnType(
+                        return new SpecifierInvokerInfo(
+                            delegateInfo,
+                            isStatic: member.IsStatic,
+                            parameterTypes: [targetType],
+                            arguments: [],
+                            SpecifierVerifier.VerifyReturn(
                                 returnType, memberType, specifier.IsStrict));
                     default:
                         throw new NotSupportedException(
                             $"Compile mode '{specifier.Mode}' is not supported.");
                 }
             }
-        }
-
-        private readonly ref struct Verification(
-            Type[] parameterTypes,
-            bool parameterCompatible,
-            Type returnType,
-            bool returnCompatible)
-        {
-            public readonly Type[] ParameterTypes = parameterTypes;
-
-            public readonly bool ParameterCompatible = parameterCompatible;
-
-            public readonly Type ReturnType = returnType;
-
-            public readonly bool ReturnCompatible = returnCompatible;
         }
     }
 }

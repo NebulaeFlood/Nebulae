@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 
 namespace Nebulae.Reflection.Extensions
 {
@@ -26,25 +25,7 @@ namespace Nebulae.Reflection.Extensions
 
             LocalBuilder local = il.DeclareLocal(valueType);
 
-            switch (local.LocalIndex)
-            {
-                case 0:
-                    il.Emit(OpCodes.Stloc_0);
-                    break;
-                case 1:
-                    il.Emit(OpCodes.Stloc_1);
-                    break;
-                case 2:
-                    il.Emit(OpCodes.Stloc_2);
-                    break;
-                case 3:
-                    il.Emit(OpCodes.Stloc_3);
-                    break;
-                default:
-                    il.Emit(OpCodes.Stloc_S, local);
-                    break;
-            }
-
+            il.EmitStloc(local);
             il.Emit(OpCodes.Ldloca_S, local);
         }
 
@@ -285,7 +266,21 @@ namespace Nebulae.Reflection.Extensions
                     }
 
                     il.Emit(OpCodes.Callvirt, ToType());
-                    break;
+
+                    if (targetType.IsValueType)
+                    {
+                        il.Emit(targetByRef ? OpCodes.Unbox : OpCodes.Unbox_Any, targetType);
+                    }
+                    else
+                    {
+                        il.Emit(OpCodes.Castclass, targetType);
+
+                        if (targetByRef)
+                        {
+                            il.EmitAsByRef(targetType);
+                        }
+                    }
+                    return;
             }
 
             if (targetByRef)
@@ -343,7 +338,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo GetTypeFromHandle()
@@ -355,7 +350,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToBoolean()
@@ -367,7 +362,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToChar()
@@ -379,7 +374,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToSByte()
@@ -391,7 +386,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToByte()
@@ -403,7 +398,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToInt16()
@@ -415,7 +410,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToUInt16()
@@ -427,7 +422,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToInt32()
@@ -439,7 +434,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToUInt32()
@@ -451,7 +446,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToInt64()
@@ -463,7 +458,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToUInt64()
@@ -475,7 +470,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToSingle()
@@ -487,7 +482,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToDouble()
@@ -499,7 +494,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToDecimal()
@@ -511,7 +506,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToDateTime()
@@ -523,7 +518,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToString()
@@ -535,7 +530,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
 
             static MethodInfo ToType()
@@ -547,7 +542,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
         }
 
@@ -624,7 +619,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
         }
 
@@ -642,7 +637,7 @@ namespace Nebulae.Reflection.Extensions
                     IL.Ref(typeof(MethodBase))
                         .Method(nameof(MethodBase.GetMethodFromHandle), typeof(RuntimeMethodHandle)));
 
-                return Unsafe.As<MethodInfo>(IL.Pop<MethodBase>());
+                return IL.Ret<MethodInfo>();
             }
         }
 
@@ -664,6 +659,28 @@ namespace Nebulae.Reflection.Extensions
         //------------------------------------------------------
 
         #region Load Helpers
+
+        public static bool IsConstant(this Type valueType)
+        {
+            return Type.GetTypeCode(valueType) switch
+            {
+                TypeCode.DBNull => true,
+                TypeCode.Boolean => true,
+                TypeCode.Char => true,
+                TypeCode.SByte => true,
+                TypeCode.Byte => true,
+                TypeCode.Int16 => true,
+                TypeCode.UInt16 => true,
+                TypeCode.Int32 => true,
+                TypeCode.UInt32 => true,
+                TypeCode.Int64 => true,
+                TypeCode.UInt64 => true,
+                TypeCode.Single => true,
+                TypeCode.Double => true,
+                TypeCode.String => true,
+                _ => false,
+            };
+        }
 
         public static void EmitLdarg(this ILGenerator il, short position)
         {
@@ -687,61 +704,117 @@ namespace Nebulae.Reflection.Extensions
             }
         }
 
-        public static void EmitLdc(this ILGenerator il, object? value, Type valueType)
+        public static void EmitLdc(this ILGenerator il, object value, Type valueType)
         {
-            if (value is null)
-            {
-                var local = il.DeclareLocal(valueType);
-
-                il.Emit(OpCodes.Ldloca_S, local);
-                il.Emit(OpCodes.Initobj, valueType);
-                il.Emit(OpCodes.Ldloc_S, local);
-                return;
-            }
+            Debug.Assert(value is not null, "Use 'Emitldnull' for null values.");
 
             switch (Type.GetTypeCode(valueType))
             {
-                case TypeCode.SByte:
-                    il.Emit(OpCodes.Ldc_I4, (sbyte)value);
-                    break;
-                case TypeCode.Byte:
-                    il.Emit(OpCodes.Ldc_I4, (byte)value);
-                    break;
-                case TypeCode.Int16:
-                    il.Emit(OpCodes.Ldc_I4, (short)value);
-                    break;
-                case TypeCode.UInt16:
-                    il.Emit(OpCodes.Ldc_I4, (ushort)value);
-                    break;
-                case TypeCode.Int32:
-                    il.Emit(OpCodes.Ldc_I4, (int)value);
-                    break;
-                case TypeCode.UInt32:
-                    il.Emit(OpCodes.Ldc_I4, unchecked((int)(uint)value));
-                    break;
-                case TypeCode.Int64:
-                    il.Emit(OpCodes.Ldc_I8, (long)value);
-                    break;
-                case TypeCode.UInt64:
-                    il.Emit(OpCodes.Ldc_I8, unchecked((long)(ulong)value));
-                    break;
-                case TypeCode.Single:
-                    il.Emit(OpCodes.Ldc_R4, (float)value);
-                    break;
-                case TypeCode.Double:
-                    il.Emit(OpCodes.Ldc_R8, (double)value);
+                case TypeCode.DBNull:
+                    il.Emit(OpCodes.Ldsfld, GetDBNull());
                     break;
                 case TypeCode.Boolean:
-                    il.Emit((bool)value ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
+                    il.Emit((bool)value! ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
                     break;
                 case TypeCode.Char:
-                    il.Emit(OpCodes.Ldc_I4, (char)value);
+                    il.EmitLdcI4((char)value!);
+                    break;
+                case TypeCode.SByte:
+                    il.EmitLdcI4((sbyte)value!);
+                    break;
+                case TypeCode.Byte:
+                    il.EmitLdcI4((byte)value!);
+                    break;
+                case TypeCode.Int16:
+                    il.EmitLdcI4((short)value!);
+                    break;
+                case TypeCode.UInt16:
+                    il.EmitLdcI4((ushort)value!);
+                    break;
+                case TypeCode.Int32:
+                    il.EmitLdcI4((int)value!);
+                    break;
+                case TypeCode.UInt32:
+                    il.EmitLdcI4(unchecked((int)(uint)value!));
+                    break;
+                case TypeCode.Int64:
+                    il.Emit(OpCodes.Ldc_I8, (long)value!);
+                    break;
+                case TypeCode.UInt64:
+                    il.Emit(OpCodes.Ldc_I8, unchecked((long)(ulong)value!));
+                    break;
+                case TypeCode.Single:
+                    il.Emit(OpCodes.Ldc_R4, (float)value!);
+                    break;
+                case TypeCode.Double:
+                    il.Emit(OpCodes.Ldc_R8, (double)value!);
                     break;
                 case TypeCode.String:
-                    il.Emit(OpCodes.Ldstr, (string)value);
+                    il.Emit(OpCodes.Ldstr, (string)value!);
                     break;
                 default:
-                    throw new NotSupportedException($"Value '{value.AsLog()}' of type '{valueType.AsLog()}' is not supported.");
+                    throw new NotSupportedException(
+                        $"Value '{value.AsLog()}' of type '{valueType.AsLog()}' is not supported.");
+            }
+
+
+            static FieldInfo GetDBNull()
+            {
+                IL.Emit.Ldtoken(
+                    IL.Ref(typeof(DBNull))
+                        .Field(nameof(DBNull.Value)));
+                IL.Emit.Call(
+                    IL.Ref(typeof(FieldInfo))
+                        .Method(nameof(FieldInfo.GetFieldFromHandle), typeof(RuntimeFieldHandle)));
+
+                return IL.Ret<FieldInfo>();
+            }
+        }
+
+        public static void EmitLdcI4(this ILGenerator il, int value)
+        {
+            switch (value)
+            {
+                case -1:
+                    il.Emit(OpCodes.Ldc_I4_M1);
+                    break;
+                case 0:
+                    il.Emit(OpCodes.Ldc_I4_0);
+                    break;
+                case 1:
+                    il.Emit(OpCodes.Ldc_I4_1);
+                    break;
+                case 2:
+                    il.Emit(OpCodes.Ldc_I4_2);
+                    break;
+                case 3:
+                    il.Emit(OpCodes.Ldc_I4_3);
+                    break;
+                case 4:
+                    il.Emit(OpCodes.Ldc_I4_4);
+                    break;
+                case 5:
+                    il.Emit(OpCodes.Ldc_I4_5);
+                    break;
+                case 6:
+                    il.Emit(OpCodes.Ldc_I4_6);
+                    break;
+                case 7:
+                    il.Emit(OpCodes.Ldc_I4_7);
+                    break;
+                case 8:
+                    il.Emit(OpCodes.Ldc_I4_8);
+                    break;
+                default:
+                    if (value >= sbyte.MinValue && value <= sbyte.MaxValue)
+                    {
+                        il.Emit(OpCodes.Ldc_I4_S, (sbyte)value);
+                    }
+                    else
+                    {
+                        il.Emit(OpCodes.Ldc_I4, value);
+                    }
+                    break;
             }
         }
 
@@ -798,6 +871,43 @@ namespace Nebulae.Reflection.Extensions
             }
         }
 
+        public static void EmitLdnull(this ILGenerator il, Type valueType)
+        {
+            if (valueType.IsByRef)
+            {
+                valueType = valueType.GetElementType()!;
+                LocalBuilder local = il.DeclareLocal(valueType);
+
+                if (valueType.IsValueType)
+                {
+                    il.Emit(OpCodes.Ldloca_S, local);
+                    il.Emit(OpCodes.Initobj, valueType);
+                }
+                else
+                {
+                    il.Emit(OpCodes.Ldnull);
+                    il.EmitStloc(local);
+                }
+
+                il.Emit(OpCodes.Ldloca_S, local);
+            }
+            else
+            {
+                if (valueType.IsValueType)
+                {
+                    LocalBuilder local = il.DeclareLocal(valueType);
+
+                    il.Emit(OpCodes.Ldloca_S, local);
+                    il.Emit(OpCodes.Initobj, valueType);
+                    il.Emit(OpCodes.Ldloc_S, local);
+                }
+                else
+                {
+                    il.Emit(OpCodes.Ldnull);
+                }
+            }
+        }
+
         public static void EmitLdtarg(this ILGenerator il, Type argumentType, Type targetType, short position)
         {
             bool sourceByRef = argumentType.IsByRef;
@@ -843,5 +953,28 @@ namespace Nebulae.Reflection.Extensions
         }
 
         #endregion
+
+
+        public static void EmitStloc(this ILGenerator il, LocalBuilder local)
+        {
+            switch (local.LocalIndex)
+            {
+                case 0:
+                    il.Emit(OpCodes.Stloc_0);
+                    break;
+                case 1:
+                    il.Emit(OpCodes.Stloc_1);
+                    break;
+                case 2:
+                    il.Emit(OpCodes.Stloc_2);
+                    break;
+                case 3:
+                    il.Emit(OpCodes.Stloc_3);
+                    break;
+                default:
+                    il.Emit(OpCodes.Stloc_S, local);
+                    break;
+            }
+        }
     }
 }

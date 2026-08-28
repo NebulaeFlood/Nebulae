@@ -50,7 +50,7 @@ namespace Nebulae.Reflection.Specifiers
         public SpecifierBinding Binding
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => (SpecifierBinding)((_flags & Specifier.BindingMask) >> 6);
+            get => Specifier.GetBinding(_flags);
         }
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace Nebulae.Reflection.Specifiers
         public SpecifierCulture Culture
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => (SpecifierCulture)((_flags & Specifier.CultureMask) >> 3);
+            get => Specifier.GetCulture(_flags);
         }
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace Nebulae.Reflection.Specifiers
         public SpecifierPolicy Policy
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => (SpecifierPolicy)((_flags & Specifier.PolicyMask) >> 7);
+            get => Specifier.GetPolicy(_flags);
         }
 
         #endregion
@@ -89,7 +89,7 @@ namespace Nebulae.Reflection.Specifiers
 
             if (memberInfo.IsStatic)
             {
-                _flags = Specifier.BindingMask;
+                _flags = Specifier.Close(default);
             }
         }
 
@@ -121,9 +121,7 @@ namespace Nebulae.Reflection.Specifiers
         public override bool Equals(object? obj)
         {
             return obj is MethodSpecifier other
-                && _flags == other._flags
-                && Target == other.Target
-                && MemberInfo == other.MemberInfo;
+                && Equals(other);
         }
 
         /// <summary>
@@ -134,7 +132,7 @@ namespace Nebulae.Reflection.Specifiers
         public bool Equals(MethodSpecifier other)
         {
             return _flags == other._flags
-                && Target == other.Target
+                && Equals(Target, other.Target)
                 && MemberInfo == other.MemberInfo;
         }
 
@@ -180,8 +178,8 @@ namespace Nebulae.Reflection.Specifiers
         {
             return new MethodSpecifier(
                 MemberInfo,
-                target: target,
-                flags: (byte)(_flags | Specifier.BindingMask));
+                target,
+                Specifier.Close(_flags));
         }
 
         /// <summary>
@@ -193,7 +191,126 @@ namespace Nebulae.Reflection.Specifiers
             return new MethodSpecifier(
                 MemberInfo,
                 target: null,
-                flags: (byte)(_flags & ~Specifier.BindingMask));
+                Specifier.Open(_flags));
+        }
+
+        /// <summary>
+        /// 将引用说明符的参数配置为指定的值
+        /// </summary>
+        /// <returns>配置后的 <see cref="DelegateSpecifier"/>。</returns>
+        public DelegateSpecifier Input(params scoped ReadOnlySpan<object?> args)
+        {
+            SpecifierVerifier.ThrowIfInputEmpty(args);
+
+            return new DelegateSpecifier(
+                MemberInfo,
+                Target,
+                new DelegateSpecifier.ArrayClosure(args.ToArray()),
+                _flags);
+        }
+
+        /// <summary>
+        /// 将引用说明符的参数配置为指定的值
+        /// </summary>
+        /// <returns>配置后的 <see cref="DelegateSpecifier"/>。</returns>
+        public DelegateSpecifier Input<T>(T arg)
+        {
+            return new DelegateSpecifier(
+                MemberInfo,
+                Target,
+                new DelegateSpecifier.Closure<T>(arg),
+                _flags);
+        }
+
+        /// <summary>
+        /// 将引用说明符的参数配置为指定的值
+        /// </summary>
+        /// <returns>配置后的 <see cref="DelegateSpecifier"/>。</returns>
+        public DelegateSpecifier Input<T1, T2>(T1 arg1, T2 arg2)
+        {
+            return new DelegateSpecifier(
+                MemberInfo,
+                Target,
+                new DelegateSpecifier.Closure<T1, T2>(arg1, arg2),
+                _flags);
+        }
+
+        /// <summary>
+        /// 将引用说明符的参数配置为指定的值
+        /// </summary>
+        /// <returns>配置后的 <see cref="DelegateSpecifier"/>。</returns>
+        public DelegateSpecifier Input<T1, T2, T3>(T1 arg1, T2 arg2, T3 arg3)
+        {
+            return new DelegateSpecifier(
+                MemberInfo,
+                Target,
+                new DelegateSpecifier.Closure<T1, T2, T3>(arg1, arg2, arg3),
+                _flags);
+        }
+
+        /// <summary>
+        /// 将引用说明符的参数配置为指定的值
+        /// </summary>
+        /// <returns>配置后的 <see cref="DelegateSpecifier"/>。</returns>
+        public DelegateSpecifier Input<T1, T2, T3, T4>(T1 arg1, T2 arg2, T3 arg3, T4 arg4)
+        {
+            return new DelegateSpecifier(
+                MemberInfo,
+                Target,
+                new DelegateSpecifier.Closure<T1, T2, T3, T4>(arg1, arg2, arg3, arg4),
+                _flags);
+        }
+
+        /// <summary>
+        /// 将引用说明符的参数配置为指定的值
+        /// </summary>
+        /// <returns>配置后的 <see cref="DelegateSpecifier"/>。</returns>
+        public DelegateSpecifier Input<T1, T2, T3, T4, T5>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
+        {
+            return new DelegateSpecifier(
+                MemberInfo,
+                Target,
+                new DelegateSpecifier.Closure<T1, T2, T3, T4, T5>(arg1, arg2, arg3, arg4, arg5),
+                _flags);
+        }
+
+        /// <summary>
+        /// 将引用说明符的参数配置为指定的值
+        /// </summary>
+        /// <returns>配置后的 <see cref="DelegateSpecifier"/>。</returns>
+        public DelegateSpecifier Input<T1, T2, T3, T4, T5, T6>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6)
+        {
+            return new DelegateSpecifier(
+                MemberInfo,
+                Target,
+                new DelegateSpecifier.Closure<T1, T2, T3, T4, T5, T6>(arg1, arg2, arg3, arg4, arg5, arg6),
+                _flags);
+        }
+
+        /// <summary>
+        /// 将引用说明符的参数配置为指定的值
+        /// </summary>
+        /// <returns>配置后的 <see cref="DelegateSpecifier"/>。</returns>
+        public DelegateSpecifier Input<T1, T2, T3, T4, T5, T6, T7>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7)
+        {
+            return new DelegateSpecifier(
+                MemberInfo,
+                Target,
+                new DelegateSpecifier.Closure<T1, T2, T3, T4, T5, T6, T7>(arg1, arg2, arg3, arg4, arg5, arg6, arg7),
+                _flags);
+        }
+
+        /// <summary>
+        /// 将引用说明符的参数配置为指定的值
+        /// </summary>
+        /// <returns>配置后的 <see cref="DelegateSpecifier"/>。</returns>
+        public DelegateSpecifier Input<T1, T2, T3, T4, T5, T6, T7, T8>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8)
+        {
+            return new DelegateSpecifier(
+                MemberInfo,
+                Target,
+                new DelegateSpecifier.Closure<T1, T2, T3, T4, T5, T6, T7, T8>(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8),
+                _flags);
         }
 
         /// <summary>
@@ -204,8 +321,8 @@ namespace Nebulae.Reflection.Specifiers
         {
             return new MethodSpecifier(
                 MemberInfo,
-                target: Target,
-                flags: (byte)(_flags | Specifier.PolicyMask));
+                Target,
+                Specifier.Lenient(_flags));
         }
 
         /// <summary>
@@ -217,8 +334,8 @@ namespace Nebulae.Reflection.Specifiers
         {
             return new MethodSpecifier(
                 MemberInfo,
-                target: Target,
-                flags: (byte)((_flags & ~Specifier.CultureMask) | ((int)culture << 3) | Specifier.PolicyMask));
+                Target,
+                Specifier.Lenient(_flags, culture));
         }
 
         /// <summary>
@@ -229,8 +346,8 @@ namespace Nebulae.Reflection.Specifiers
         {
             return new MethodSpecifier(
                 MemberInfo,
-                target: Target,
-                flags: (byte)(_flags & ~Specifier.PolicyMask));
+                Target,
+                Specifier.Strict(_flags));
         }
 
         /// <summary>
@@ -255,8 +372,8 @@ namespace Nebulae.Reflection.Specifiers
             {
                 CompilerHelpers.VerifyBindingTarget(this);
 
-                Verification verification = CompilerHelpers.VerifyDelegate<T>(this);
-                MethodInfo invoker = CompilerHelpers.CreateInvoker(this, verification);
+                SpecifierInvokerInfo invokerInfo = CompilerHelpers.VerifyDelegate<T>(this);
+                MethodInfo invoker = CompilerHelpers.CreateInvoker(this, invokerInfo);
 
                 return IsOpen ? invoker.CreateDelegate<T>() : invoker.CreateDelegate<T>(Target);
             }
@@ -277,25 +394,15 @@ namespace Nebulae.Reflection.Specifiers
         {
             try
             {
-                if (IsOpen)
+                if (Target != Specifier.Defer)
                 {
-                    Verification verification = CompilerHelpers.VerifyDelegate<T>(this);
-                    MethodInfo invoker = CompilerHelpers.CreateInvoker(this, verification);
-                    return new Compiler<T>(this, invoker);
+                    CompilerHelpers.VerifyBindingTarget(this);
                 }
-                else
-                {
-                    object? target = Target;
 
-                    if (target != Specifier.Defer)
-                    {
-                        CompilerHelpers.VerifyBindingTarget(target, MemberInfo);
-                    }
+                SpecifierInvokerInfo invokerInfo = CompilerHelpers.VerifyDelegate<T>(this);
+                MethodInfo invoker = CompilerHelpers.CreateInvoker(this, invokerInfo);
 
-                    Verification verification = CompilerHelpers.VerifyDelegate<T>(this);
-                    MethodInfo invoker = CompilerHelpers.CreateInvoker(this, verification);
-                    return new Compiler<T>(this, invoker);
-                }
+                return new Compiler<T>(this, invoker);
             }
             catch (Exception e)
             {
@@ -319,13 +426,13 @@ namespace Nebulae.Reflection.Specifiers
         private bool IsOpen
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => (_flags & Specifier.BindingMask) == 0;
+            get => Specifier.IsOpen(_flags);
         }
 
         private bool IsStrict
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => (_flags & Specifier.PolicyMask) == 0;
+            get => Specifier.IsStrict(_flags);
         }
 
         private ParameterInfo[] Parameters
@@ -378,9 +485,7 @@ namespace Nebulae.Reflection.Specifiers
         /// <returns>若两个 <see cref="MethodSpecifier"/> 相等，返回 <see langword="true"/>；反之则返回 <see langword="false"/>。</returns>
         public static bool operator ==(MethodSpecifier left, MethodSpecifier right)
         {
-            return left._flags == right._flags
-                && left.Target == right.Target
-                && left.MemberInfo == right.MemberInfo;
+            return left.Equals(right);
         }
 
         /// <summary>
@@ -391,9 +496,7 @@ namespace Nebulae.Reflection.Specifiers
         /// <returns>若两个 <see cref="MethodSpecifier"/> 不等，返回 <see langword="true"/>；反之则返回 <see langword="false"/>。</returns>
         public static bool operator !=(MethodSpecifier left, MethodSpecifier right)
         {
-            return left._flags != right._flags
-                || left.Target != right.Target
-                || left.MemberInfo != right.MemberInfo;
+            return !left.Equals(right);
         }
 
         #endregion
@@ -402,8 +505,9 @@ namespace Nebulae.Reflection.Specifiers
         /// <summary>
         /// <see cref="MethodSpecifier"/> 的编译器
         /// </summary>
-        /// <typeparam name="T">委托类型</typeparam>
-        public sealed class Compiler<T> where T : Delegate
+        /// <typeparam name="TDelegate">委托类型</typeparam>
+        public sealed class Compiler<TDelegate> : Specifier.ICompiler<TDelegate>
+            where TDelegate : Delegate
         {
             /// <summary>
             /// 关联的 <see cref="MethodSpecifier"/>
@@ -440,38 +544,37 @@ namespace Nebulae.Reflection.Specifiers
             /// <summary>
             /// 编译为指定的委托类型
             /// </summary>
-            /// <returns>由 <see cref="Specifier"/> 编译的委托。</returns>
-            public T Compile()
+            /// <returns>按 <see cref="Specifier"/> 编译的委托。</returns>
+            public TDelegate Compile()
             {
                 try
                 {
                     if (Specifier.IsOpen)
                     {
-                        return _invoker.CreateDelegate<T>();
+                        return _invoker.CreateDelegate<TDelegate>();
                     }
-                    else
-                    {
-                        object? target = Specifier.Target;
 
-                        SpecifierVerifier.ThrowIfDeferTarget(target);
-                        return _invoker.CreateDelegate<T>(target);
-                    }
+                    object? target = Specifier.Target;
+                    SpecifierVerifier.ThrowIfDeferTarget(target);
+
+                    return _invoker.CreateDelegate<TDelegate>(target);
                 }
                 catch (Exception e)
                 {
                     throw new InvalidOperationException(
                         $"Cannot compile method '{Specifier.MemberInfo.AsLog()}' " +
-                        $"to delegate type '{typeof(T).AsLog()}'.", e);
+                        $"to delegate type '{typeof(TDelegate).AsLog()}'.", e);
                 }
             }
 
             /// <summary>
             /// 编译为指定的委托类型并绑定到目标对象
             /// </summary>
+            /// <typeparam name="T">目标对象的类型</typeparam>
             /// <param name="target">要绑定的目标对象</param>
-            /// <returns>由 <see cref="Specifier"/> 编译的委托。</returns>
+            /// <returns>按 <see cref="Specifier"/> 编译的委托。</returns>
             /// <remarks>只有 <see cref="Binding"/> 为 <see cref="SpecifierBinding.Close"/> 时，才能使用此方法。</remarks>
-            public T Compile(object? target)
+            public TDelegate Compile<T>(T target)
             {
                 if (Specifier.IsOpen)
                 {
@@ -483,14 +586,17 @@ namespace Nebulae.Reflection.Specifiers
                 try
                 {
                     SpecifierVerifier.ThrowIfDeferTarget(target);
-                    CompilerHelpers.VerifyBindingTarget(target, Specifier.MemberInfo);
-                    return _invoker.CreateDelegate<T>(target);
+
+                    MethodInfo member = Specifier.MemberInfo;
+                    SpecifierVerifier.VerifyBindingTarget(target, member, member.IsStatic);
+
+                    return _invoker.CreateDelegate<TDelegate>(target);
                 }
                 catch (Exception e)
                 {
                     throw new InvalidOperationException(
                         $"Cannot compile method '{Specifier.MemberInfo.AsLog()}' " +
-                        $"to delegate type '{typeof(T).AsLog()}'.", e);
+                        $"to delegate type '{typeof(TDelegate).AsLog()}'.", e);
                 }
             }
 
@@ -503,80 +609,85 @@ namespace Nebulae.Reflection.Specifiers
 
         private static class CompilerHelpers
         {
-            public static MethodInfo CreateInvoker(in MethodSpecifier specifier, in Verification verification)
+            public static MethodInfo CreateInvoker(in MethodSpecifier specifier, in SpecifierInvokerInfo invokerInfo)
             {
-                if (verification.SignatureCompatible)
+                if (!invokerInfo.IsDynamic)
                 {
                     return specifier.MemberInfo;
                 }
 
-                MethodInfo member = specifier.MemberInfo;
                 SpecifierCulture culture = specifier.Culture;
+                MethodInfo member = specifier.MemberInfo;
 
-                Type[] argumentTypes = verification.ArgumentTypes;
-                Type[] parameterTypes = verification.ParameterTypes;
-                Type returnType = verification.ReturnType;
+                SpecifierInvokerInfo.DelegateInfo delegateInfo = invokerInfo.Delegate;
+
+                SpecifierInvokerInfo.ArgumentInfo[] arguments = invokerInfo.Arguments;
+                Type[] parameterTypes = invokerInfo.ParameterTypes!;
 
                 DynamicMethod invoker = new(
-                    GetNameBuilder(specifier.MemberInfo).ToString(),
-                    returnType,
-                    argumentTypes,
+                    GetNameBuilder(member).ToString(),
+                    delegateInfo.ReturnType,
+                    parameterTypes,
                     restrictedSkipVisibility: true);
                 ILGenerator il = invoker.GetILGenerator();
 
-                if (!member.IsStatic)
+                if (!invokerInfo.IsStatic)
                 {
-                    il.EmitLdtarg(argumentTypes[0], parameterTypes[0], 0);
+                    il.EmitLdtarg(parameterTypes[0], member.DeclaringType!, 0);
                 }
 
-                bool[] compability = verification.SignatureCompability;
-
-                for (short i = 1; i < argumentTypes.Length; i++)
+                for (int i = 0; i < arguments.Length; i++)
                 {
-                    if (compability[i])
+                    ref readonly SpecifierInvokerInfo.ArgumentInfo argument = ref arguments[i];
+
+                    Debug.Assert(
+                        argument.Source is SpecifierInvokerInfo.ArgumentSource.Parameter,
+                        "Method arguments must come from delegate parameters.");
+
+                    short sourceIndex = (short)argument.SourceIndex;
+
+                    if (argument.IsCompatible)
                     {
-                        il.EmitLdarg(i);
+                        il.EmitLdarg(sourceIndex);
                     }
                     else
                     {
-                        Type argumentType = argumentTypes[i];
+                        Type argumentType = argument.ArgumentType;
 
                         if (argumentType.IsValueType)
                         {
                             argumentType = argumentType.MakeByRefType();
 
-                            il.Emit(OpCodes.Ldarga_S, i);
+                            il.Emit(OpCodes.Ldarga_S, sourceIndex);
                         }
                         else
                         {
-                            il.EmitLdarg(i);
+                            il.EmitLdarg(sourceIndex);
                         }
 
-                        il.EmitConv(argumentType, parameterTypes[i], culture);
+                        il.EmitConv(argumentType, argument.ParameterType, culture);
                     }
                 }
 
-                il.Emit(member.IsStatic ? OpCodes.Call : OpCodes.Callvirt, member);
+                il.Emit(invokerInfo.IsStatic ? OpCodes.Call : OpCodes.Callvirt, member);
 
-                if (!verification.ReturnCompatiable)
+                if (!invokerInfo.Return.IsCompatible)
                 {
-                    il.EmitConv(member.ReturnType, returnType, culture);
+                    il.EmitConv(invokerInfo.Return.Type, delegateInfo.ReturnType, culture);
                 }
 
                 il.Emit(OpCodes.Ret);
                 return invoker;
             }
 
-            public static StringBuilder GetNameBuilder(MethodInfo method)
+            public static StringBuilder GetNameBuilder(MethodInfo member)
             {
                 return new StringBuilder(128)
-                    .Format(method.ReturnType)
-                    .Append(' ')
                     .Format(typeof(Reflector))
                     .Append(".Invoke<>")
-                    .Format(method.DeclaringType!)
+                    .Format(member.DeclaringType!)
                     .Append('.')
-                    .Format(method.Name);
+                    .Format(member.Name);
             }
 
             public static void VerifyBindingTarget(in MethodSpecifier specifier)
@@ -587,207 +698,111 @@ namespace Nebulae.Reflection.Specifiers
                 }
 
                 object? target = specifier.Target;
-
                 SpecifierVerifier.ThrowIfDeferTarget(target);
-                VerifyBindingTarget(target, specifier.MemberInfo);
+
+                MethodInfo member = specifier.MemberInfo;
+                SpecifierVerifier.VerifyBindingTarget(target, member, member.IsStatic);
             }
 
-            public static void VerifyBindingTarget(object? target, MethodInfo method)
-            {
-                if (target is null)
-                {
-                    if (!method.IsStatic)
-                    {
-                        throw new ArgumentException(
-                            $"Expects a non-null target object " +
-                            $"for instance method '{method.AsLog()}', " +
-                            $"but received '{DiagnosticHelpers.Null}'.");
-                    }
-                }
-                else if (method.IsStatic)
-                {
-                    throw new ArgumentException(
-                        $"Expects a null target object " +
-                        $"for static method '{method.AsLog()}', " +
-                        $"but received object '{target.AsLog()}'.");
-                }
-                else
-                {
-                    Type targetType = target.GetType();
-                    Type declaringType = method.DeclaringType!;
-
-                    if (!declaringType.IsAssignableFrom(targetType))
-                    {
-                        throw new ArgumentException(
-                            $"Expects a target object of type '{declaringType.AsLog()}' " +
-                            $"for instance method '{method.AsLog()}', " +
-                            $"but received object '{target.AsLog()}' of type '{targetType.AsLog()}'.");
-                    }
-                }
-            }
-
-            public static Verification VerifyDelegate<T>(in MethodSpecifier specifier)
+            public static SpecifierInvokerInfo VerifyDelegate<T>(in MethodSpecifier specifier)
                 where T : Delegate
             {
-                Type delegateType = typeof(T);
+                SpecifierInvokerInfo.DelegateInfo delegateInfo = SpecifierVerifier.VerifyDelegate<T>();
 
-                if (delegateType.IsAbstract)
-                {
-                    throw new ArgumentException(
-                        $"Cannot compile to abstract delegate type '{delegateType.AsLog()}'.");
-                }
+                MethodInfo member = specifier.MemberInfo;
 
-                MethodInfo invocation = delegateType.GetMethod("Invoke", BindingFlags.Instance | BindingFlags.Public)
-                    ?? throw new NotSupportedException(
-                        $"Cannot compile to delegate type '{delegateType.AsLog()}', " +
-                        $"because it does not have any method named 'Invoke'.");
+                ParameterInfo[] delegateParameters = delegateInfo.Parameters;
+                ParameterInfo[] memberParameters = member.GetParameters();
 
-                Type returnType = invocation.ReturnType;
-                Type memberType = specifier.MemberInfo.ReturnType;
-
-                bool returnCompatible = SpecifierVerifier.VerifyReturnType(
-                    returnType, memberType, specifier.IsStrict);
-
-                ParameterInfo[] invokerParameters = invocation.GetParameters();
-                ParameterInfo[] memberParameters = specifier.MemberInfo.GetParameters();
-
-                Type[] argumentTypes;
-                Type[] parameterTypes;
-
-                bool[] signatureCompability;
-                bool signatureCompatible = returnCompatible;
+                int delegateOffset;
 
                 if (specifier.IsOpen)
                 {
-                    if (memberParameters.Length + 1 != invokerParameters.Length)
+                    if (delegateParameters.Length != memberParameters.Length + 1)
                     {
                         throw new ArgumentException(
-                            $"Expects exactly {memberParameters.Length + 1} parameter(s) " +
+                            $"Expects exactly {memberParameters.Length + 1} delegate parameter(s) " +
                             $"when the target is not bound, " +
-                            $"but received {invokerParameters.Length} parameter(s).");
+                            $"but received {delegateParameters.Length} delegate parameter(s).");
                     }
 
-                    argumentTypes = new Type[invokerParameters.Length];
-                    parameterTypes = new Type[invokerParameters.Length];
-
-                    if (specifier.MemberInfo.IsStatic)
-                    {
-                        signatureCompatible = false;
-
-                        Type type = typeof(object);
-
-                        argumentTypes[0] = type;
-                        parameterTypes[0] = type;
-                    }
-                    else
-                    {
-                        Type argumentType = invokerParameters[0].ParameterType;
-                        Type parameterType = specifier.MemberInfo.DeclaringType!;
-
-                        signatureCompatible = SpecifierVerifier.VerifyTargetType(
-                            argumentType, parameterType, specifier.IsStrict)
-                            && signatureCompatible;
-
-                        argumentTypes[0] = argumentType;
-                        parameterTypes[0] = parameterType;
-                    }
-
-                    signatureCompability = new bool[invokerParameters.Length];
-
-                    for (int i = 1; i < invokerParameters.Length; i++)
-                    {
-                        Type argumentType = invokerParameters[i].ParameterType;
-                        Type parameterType = memberParameters[i - 1].ParameterType;
-
-                        bool compability = SpecifierVerifier.VerifyArgumentType(
-                            argumentType, parameterType, specifier.IsStrict, i);
-
-                        signatureCompability[i] = compability;
-                        signatureCompatible = signatureCompatible && compability;
-
-                        argumentTypes[i] = argumentType;
-                        parameterTypes[i] = parameterType;
-                    }
+                    delegateOffset = 1;
                 }
                 else
                 {
-                    if (memberParameters.Length != invokerParameters.Length)
+                    if (delegateParameters.Length != memberParameters.Length)
                     {
                         throw new ArgumentException(
-                            $"Expects exactly {memberParameters.Length} parameter(s) " +
+                            $"Expects exactly {memberParameters.Length} delegate parameter(s) " +
                             $"when the target is bound, " +
-                            $"but received {invokerParameters.Length} parameter(s).");
+                            $"but received {delegateParameters.Length} delegate parameter(s).");
                     }
 
-                    int parameterCount = invokerParameters.Length + 1;
-
-                    argumentTypes = new Type[parameterCount];
-                    parameterTypes = new Type[parameterCount];
-
-                    if (specifier.MemberInfo.IsStatic)
-                    {
-                        Type type = typeof(object);
-
-                        argumentTypes[0] = type;
-                        parameterTypes[0] = type;
-                    }
-                    else
-                    {
-                        Type declaringType = specifier.MemberInfo.DeclaringType!;
-
-                        argumentTypes[0] = declaringType;
-                        parameterTypes[0] = declaringType;
-                    }
-
-                    signatureCompability = new bool[parameterCount];
-
-                    for (int i = 0; i < invokerParameters.Length; i++)
-                    {
-                        Type argumentType = invokerParameters[i].ParameterType;
-                        Type parameterType = memberParameters[i].ParameterType;
-
-                        bool compability = SpecifierVerifier.VerifyArgumentType(
-                            argumentType, parameterType, specifier.IsStrict, i);
-
-                        int index = i + 1;
-
-                        signatureCompability[index] = compability;
-                        signatureCompatible = signatureCompatible && compability;
-
-                        argumentTypes[index] = argumentType;
-                        parameterTypes[index] = parameterType;
-                    }
+                    delegateOffset = 0;
                 }
 
-                return new Verification(
-                    argumentTypes,
+                SpecifierInvokerInfo.ReturnInfo returnInfo = SpecifierVerifier.VerifyReturn(
+                    delegateInfo.ReturnType, member.ReturnType, specifier.IsStrict);
+                bool signatureCompatible = returnInfo.IsCompatible;
+
+                if (specifier.IsOpen)
+                {
+                    signatureCompatible &= !member.IsStatic
+                        && SpecifierVerifier.VerifyTargetType(
+                            delegateParameters[0].ParameterType, member.DeclaringType!, specifier.IsStrict);
+                }
+
+                for (int i = 0; i < memberParameters.Length; i++)
+                {
+                    int delegateIndex = i + delegateOffset;
+
+                    signatureCompatible &= SpecifierVerifier.VerifyArgumentType(
+                        delegateParameters[delegateIndex].ParameterType,
+                        memberParameters[i].ParameterType,
+                        specifier.IsStrict,
+                        delegateIndex);
+                }
+
+                if (signatureCompatible)
+                {
+                    return new SpecifierInvokerInfo(
+                        delegateInfo,
+                        member.IsStatic,
+                        returnInfo);
+                }
+
+                var arguments = new SpecifierInvokerInfo.ArgumentInfo[memberParameters.Length];
+                Type[] parameterTypes = new Type[memberParameters.Length + 1];
+
+                parameterTypes[0] = specifier.IsOpen
+                    ? delegateParameters[0].ParameterType
+                    : (member.IsStatic ? typeof(object) : member.DeclaringType!);
+
+                for (int i = 0; i < memberParameters.Length; i++)
+                {
+                    int delegateIndex = i + delegateOffset;
+                    int sourceIndex = i + 1;
+
+                    Type argumentType = delegateParameters[delegateIndex].ParameterType;
+                    Type parameterType = memberParameters[i].ParameterType;
+
+                    parameterTypes[sourceIndex] = argumentType;
+                    arguments[i] = new SpecifierInvokerInfo.ArgumentInfo(
+                        SpecifierInvokerInfo.ArgumentSource.Parameter,
+                        sourceIndex,
+                        argumentType,
+                        parameterType,
+                        SpecifierVerifier.VerifyArgumentType(
+                            argumentType, parameterType, specifier.IsStrict, delegateIndex));
+                }
+
+                return new SpecifierInvokerInfo(
+                    delegateInfo,
+                    member.IsStatic,
                     parameterTypes,
-                    returnType,
-                    returnCompatible,
-                    signatureCompability,
-                    signatureCompatible);
+                    arguments,
+                    returnInfo);
             }
-        }
-
-        private readonly ref struct Verification(
-            Type[] argumentTypes,
-            Type[] parameterTypes,
-            Type returnType,
-            bool returnTypeCompatible,
-            bool[] signatureCompability,
-            bool signatureCompatible)
-        {
-            public readonly Type[] ArgumentTypes = argumentTypes;
-
-            public readonly Type[] ParameterTypes = parameterTypes;
-
-            public readonly Type ReturnType = returnType;
-
-            public readonly bool ReturnCompatiable = returnTypeCompatible;
-
-            public readonly bool[] SignatureCompability = signatureCompability;
-
-            public readonly bool SignatureCompatible = signatureCompatible;
         }
     }
 }

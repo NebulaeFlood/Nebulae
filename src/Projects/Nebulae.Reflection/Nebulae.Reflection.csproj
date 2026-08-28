@@ -10,10 +10,11 @@
 
 	<ItemGroup>
 		<PackageReference Include="Nebulae.Runtime.Emit.Inline" Version="2.0.0" PrivateAssets="all" />
-		<PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.7.0"  Condition=" $(TargetFramework) == 'netstandard2.0' " />
+		<PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.7.0" Condition=" $(TargetFramework) == 'netstandard2.0' " />
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Nebulae.Collections\Nebulae.Collections.csproj" />
 		<ProjectReference Include="..\Nebulae.Diagnostics\Nebulae.Diagnostics.csproj" />
 	</ItemGroup>
 

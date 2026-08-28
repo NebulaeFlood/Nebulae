@@ -1,7 +1,6 @@
 using Nebulae.Diagnostics;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Nebulae.Reflection
@@ -180,125 +179,6 @@ namespace Nebulae.Reflection
 
             return (ConvertibleTypeCodeMask & (1 << (int)sourceTypeCode)) != 0
                 && (ConvertibleTypeCodeMask & (1 << (int)targetTypeCode)) != 0;
-        }
-
-
-        /// <summary>
-        /// 转换异常抛出的工具类
-        /// </summary>
-        public static class ThrowHelpers
-        {
-            /// <summary>
-            /// 抛出转换无效时的异常
-            /// </summary>
-            /// <param name="sourceType">源类型</param>
-            /// <param name="targetType">目标类型</param>
-            /// <param name="innerException">内部异常</param>
-            [DoesNotReturn]
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void ThrowInvalidCastException(Type sourceType, Type targetType, Exception? innerException = null)
-            {
-                throw new InvalidCastException($"Cannot convert from '{sourceType.AsLog()}' to '{targetType.AsLog()}'.", innerException);
-            }
-
-            /// <summary>
-            /// 抛出转换无效时的异常
-            /// </summary>
-            /// <typeparam name="T">源数据的类型</typeparam>
-            /// <param name="source">源数据</param>
-            /// <param name="targetType">目标类型</param>
-            /// <param name="innerException">内部异常</param>
-            [DoesNotReturn]
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void ThrowInvalidCastException<T>(T source, Type targetType, Exception? innerException = null)
-            {
-                if (source is null)
-                {
-                    throw new InvalidCastException($"Cannot convert value '{DiagnosticHelpers.Null}' to '{targetType.AsLog()}'.", innerException);
-                }
-                else
-                {
-                    throw new InvalidCastException($"Cannot convert value '{source.AsLog()}' of type '{source.GetType().AsLog()}' to '{targetType.AsLog()}'.", innerException);
-                }
-            }
-
-            /// <summary>
-            /// 抛出转换无效时的异常
-            /// </summary>
-            /// <param name="memberInfo">提供源数据的成员的信息</param>
-            /// <param name="targetType">目标类型</param>
-            /// <param name="innerException">内部异常</param>
-            [DoesNotReturn]
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void ThrowInvalidMemberCastException(FieldInfo memberInfo, Type targetType, Exception? innerException = null)
-            {
-                throw new InvalidCastException($"Cannot convert field '{memberInfo.AsLog()}' of type '{memberInfo.FieldType.AsLog()}' to '{targetType.AsLog()}'.", innerException);
-            }
-
-            /// <summary>
-            /// 抛出转换无效时的异常
-            /// </summary>
-            /// <param name="memberInfo">提供源数据的成员的信息</param>
-            /// <param name="targetType">目标类型</param>
-            /// <param name="innerException">内部异常</param>
-            [DoesNotReturn]
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void ThrowInvalidMemberCastException(PropertyInfo memberInfo, Type targetType, Exception? innerException = null)
-            {
-                throw new InvalidCastException($"Cannot convert property '{memberInfo.AsLog()}' of type '{memberInfo.PropertyType.AsLog()}' to '{targetType.AsLog()}'.", innerException);
-            }
-
-            /// <summary>
-            /// 抛出转换无效时的异常
-            /// </summary>
-            /// <typeparam name="T">源数据的类型</typeparam>
-            /// <param name="source">源数据</param>
-            /// <param name="memberInfo">提供源数据的成员的信息</param>
-            /// <param name="targetType">目标类型</param>
-            /// <param name="innerException">内部异常</param>
-            [DoesNotReturn]
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void ThrowInvalidMemberCastExceptionWithValue<T>(T source, FieldInfo memberInfo, Type targetType, Exception? innerException = null)
-            {
-                if (source is null)
-                {
-                    throw new InvalidCastException(
-                        $"Cannot convert field '{memberInfo.AsLog()}' of type '{memberInfo.FieldType.AsLog()}' to '{targetType.AsLog()}'. " +
-                        $"The field value was '{DiagnosticHelpers.Null}'.", innerException);
-                }
-                else
-                {
-                    throw new InvalidCastException(
-                        $"Cannot convert field '{memberInfo.AsLog()}' of type '{memberInfo.FieldType.AsLog()}' to '{targetType.AsLog()}'. " +
-                        $"The field value was '{source.AsLog()}' of type '{source.GetType().AsLog()}'.", innerException);
-                }
-            }
-
-            /// <summary>
-            /// 抛出转换无效时的异常
-            /// </summary>
-            /// <typeparam name="T">源数据的类型</typeparam>
-            /// <param name="source">源数据</param>
-            /// <param name="memberInfo">提供源数据的成员的信息</param>
-            /// <param name="targetType">目标类型</param>
-            /// <param name="innerException">内部异常</param>
-            [DoesNotReturn]
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void ThrowInvalidMemberCastExceptionWithValue<T>(T source, PropertyInfo memberInfo, Type targetType, Exception? innerException = null)
-            {
-                if (source is null)
-                {
-                    throw new InvalidCastException(
-                        $"Cannot convert property '{memberInfo.AsLog()}' of type '{memberInfo.PropertyType.AsLog()}' to '{targetType.AsLog()}'. " +
-                        $"The property value was '{DiagnosticHelpers.Null}'.", innerException);
-                }
-                else
-                {
-                    throw new InvalidCastException(
-                        $"Cannot convert property '{memberInfo.AsLog()}' of type '{memberInfo.PropertyType.AsLog()}' to '{targetType.AsLog()}'. " +
-                        $"The property value was '{source.AsLog()}' of type '{source.GetType().AsLog()}'.", innerException);
-                }
-            }
         }
     }
 }
