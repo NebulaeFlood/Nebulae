@@ -4,8 +4,7 @@
 		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
 	</PropertyGroup>
 
-	<Import Project="..\..\Nebulae.Lifetime.WeakEvents\Nebulae.Lifetime.WeakEvents.projitems" Label="Shared" />
-	<Import Project="..\..\System.Diagnostics.CodeAnalysis\System.Diagnostics.CodeAnalysis.projitems" Label="Shared" />
+	<Import Project="..\System.Diagnostics.CodeAnalysis\System.Diagnostics.CodeAnalysis.projitems" Label="Shared" />
 
 	<ItemGroup>
 		<PackageReference Include="Nebulae.Runtime.Emit.Inline" Version="2.0.0" PrivateAssets="all" />

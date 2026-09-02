@@ -7,26 +7,25 @@
     <File Path="LICENSE.txt" />
     <File Path="ShutdownMSBuild.cmd" />
   </Folder>
-  <Folder Name="/Projects/">
-    <Project Path="src/Projects/Nebulae.Collections/Nebulae.Collections.csproj" Id="d497409e-235a-4879-9106-857de0734034" />
-    <Project Path="src/Projects/Nebulae.Diagnostics/Nebulae.Diagnostics.csproj" Id="80b6af9e-bb37-42ac-a66f-4de70c5e68c4" />
-    <Project Path="src/Projects/Nebulae.Lifetime.WeakEvents/Nebulae.Lifetime.WeakEvents.csproj" Id="cbcb58d6-4548-465b-8d45-7d9114b70915" />
-    <Project Path="src/Projects/Nebulae.Lifetime/Nebulae.Lifetime.csproj" Id="9ea9d5db-795e-469b-a2ae-80db2a19851b" />
-    <Project Path="src/Projects/Nebulae.Presentation.Vulkan/Nebulae.Presentation.Vulkan.csproj" Id="d06696aa-3b2e-487c-beab-599e3b994370" />
-    <Project Path="src/Projects/Nebulae.Presentation/Nebulae.Presentation.csproj" Id="46dcca0d-5f55-4c8d-b98a-dddec4d9b016" />
-    <Project Path="src/Projects/Nebulae.Reflection/Nebulae.Reflection.csproj" />
-    <Project Path="src/Projects/Nebulae.Runtime.Emit.Inline.Analyzers/Nebulae.Runtime.Emit.Inline.Analyzers.csproj" />
-    <Project Path="src/Projects/Nebulae.Runtime.Emit.Inline.MSBuild/Nebulae.Runtime.Emit.Inline.MSBuild.csproj" Id="c0526c27-4843-4c2c-958f-ba2467b1b6c6" />
-    <Project Path="src/Projects/Nebulae.Runtime.Emit.Inline/Nebulae.Runtime.Emit.Inline.csproj" Id="b7fe1e81-d47b-4133-8212-8dd0694fba74" />
-    <Project Path="src/Projects/Nebulae.Runtime/Nebulae.Runtime.csproj" />
+  <Folder Name="/Nebulae.Presentation/">
+    <Project Path="src/Nebulae.Presentation.Graphics.Vulkan/Nebulae.Presentation.Graphics.Vulkan.csproj" Id="d06696aa-3b2e-487c-beab-599e3b994370" />
+    <Project Path="src/Nebulae.Presentation.Platform.Desktop/Nebulae.Presentation.Platform.Desktop.csproj" Id="ab884039-960d-49c9-a4d5-2a37fe9dae3e" />
+    <Project Path="src/Nebulae.Presentation.UI/Nebulae.Presentation.UI.csproj" Id="f8df05de-bf07-4e7e-8a72-ecdcdba6dc9b" />
+    <Project Path="src/Nebulae.Presentation/Nebulae.Presentation.csproj" Id="46dcca0d-5f55-4c8d-b98a-dddec4d9b016" />
   </Folder>
-  <Folder Name="/Shared/">
-    <Project Path="src/Nebulae.Collections/Nebulae.Collections.shproj" Id="f91a8fde-9aff-405c-b420-3f5f32201be9" />
-    <Project Path="src/Nebulae.Diagnostics/Nebulae.Diagnostics.shproj" Id="4ca31b01-1d54-451c-824c-b679f8b27ff1" />
-    <Project Path="src/Nebulae.Lifetime.WeakEvents/Nebulae.Lifetime.WeakEvents.shproj" Id="e01141f1-ba0c-4994-8515-742918f672cd" />
-    <Project Path="src/Nebulae.Reflection/Nebulae.Reflection.shproj" Id="c030c424-31cf-46f3-a943-3504bcce7359" />
-    <Project Path="src/Nebulae.Runtime.Emit/Nebulae.Runtime.Emit.shproj" Id="b6c68fc1-ca16-4652-a8dd-c007cb89660e" />
-    <Project Path="src/Nebulae.Runtime.Forge/Nebulae.Runtime.Forge.shproj" Id="f8ba46ba-bc7c-47df-9478-e82795eb0502" />
+  <Folder Name="/Nebulae.Runtime.Emit.Inline/">
+    <Project Path="src/Nebulae.Runtime.Emit.Inline.Analyzers/Nebulae.Runtime.Emit.Inline.Analyzers.csproj" />
+    <Project Path="src/Nebulae.Runtime.Emit.Inline.MSBuild/Nebulae.Runtime.Emit.Inline.MSBuild.csproj" Id="c0526c27-4843-4c2c-958f-ba2467b1b6c6" />
+    <Project Path="src/Nebulae.Runtime.Emit.Inline/Nebulae.Runtime.Emit.Inline.csproj" Id="b7fe1e81-d47b-4133-8212-8dd0694fba74" />
+  </Folder>
+  <Folder Name="/Nebulae/">
+    <Project Path="src/Nebulae.Collections/Nebulae.Collections.csproj" Id="d497409e-235a-4879-9106-857de0734034" />
+    <Project Path="src/Nebulae.Diagnostics/Nebulae.Diagnostics.csproj" Id="80b6af9e-bb37-42ac-a66f-4de70c5e68c4" />
+    <Project Path="src/Nebulae.Lifetime.WeakEvents/Nebulae.Lifetime.WeakEvents.csproj" Id="cbcb58d6-4548-465b-8d45-7d9114b70915" />
+    <Project Path="src/Nebulae.Lifetime/Nebulae.Lifetime.csproj" Id="9ea9d5db-795e-469b-a2ae-80db2a19851b" />
+    <Project Path="src/Nebulae.Reflection/Nebulae.Reflection.csproj" />
+  </Folder>
+  <Folder Name="/System/">
     <Project Path="src/System.Diagnostics.CodeAnalysis/System.Diagnostics.CodeAnalysis.shproj" Id="d71f5434-02e8-4044-a316-57f6a0cbe7ab" />
     <Project Path="src/System.Runtime.CompilerServices/System.Runtime.CompilerServices.shproj" Id="76a8a65b-f363-4f15-9e31-6c294eefd4d4" />
   </Folder>

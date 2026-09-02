@@ -20,7 +20,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Tests.Runtime.Emit.Inline.Infrastructure\Tests.Runtime.Emit.Inline.Infrastructure.csproj" />
-		<ProjectReference Include="..\..\Projects\Nebulae.Runtime.Emit.Inline\Nebulae.Runtime.Emit.Inline.csproj" />
+		<ProjectReference Include="..\..\Nebulae.Runtime.Emit.Inline\Nebulae.Runtime.Emit.Inline.csproj" />
 	</ItemGroup>
 
 </Project>

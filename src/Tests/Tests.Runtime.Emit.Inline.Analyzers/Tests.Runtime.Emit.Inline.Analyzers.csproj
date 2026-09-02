@@ -17,7 +17,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Tests.Runtime.Emit.Inline.Infrastructure\Tests.Runtime.Emit.Inline.Infrastructure.csproj" />
-		<ProjectReference Include="..\..\Projects\Nebulae.Runtime.Emit.Inline.Analyzers\Nebulae.Runtime.Emit.Inline.Analyzers.csproj" />
+		<ProjectReference Include="..\..\Nebulae.Runtime.Emit.Inline.Analyzers\Nebulae.Runtime.Emit.Inline.Analyzers.csproj" />
 	</ItemGroup>
 
 </Project>

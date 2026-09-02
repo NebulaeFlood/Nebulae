@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Nebulae.Diagnostics\Nebulae.Diagnostics.csproj" />
+	</ItemGroup>
+
+	<Import Project="..\System.Diagnostics.CodeAnalysis\System.Diagnostics.CodeAnalysis.projitems" Label="Shared" />
+	<Import Project="..\System.Runtime.CompilerServices\System.Runtime.CompilerServices.projitems" Label="Shared" />
+
+	<ItemGroup>
+		<PackageReference Include="Nebulae.Runtime.Emit.Inline" Version="2.0.0" PrivateAssets="all" />
+		<PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.3" Condition=" $(TargetFramework) == 'netstandard2.0' " />
+	</ItemGroup>
+
+</Project>

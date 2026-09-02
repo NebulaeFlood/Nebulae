@@ -2,7 +2,7 @@ namespace Nebulae.Lifetime.WeakEvents
 {
 #if !NET9_0_OR_GREATER
     /// <summary>
-    /// 表示一个事件处理程序
+    /// 表示一个事件处理方法
     /// </summary>
     /// <typeparam name="TSender">事件源的类型</typeparam>
     /// <typeparam name="TArgs">事件参数的类型</typeparam>
