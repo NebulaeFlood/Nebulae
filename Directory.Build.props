@@ -45,7 +45,7 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="!$(MSBuildProjectName.StartsWith('Tests'))">
-		<None Include="..\..\..\LICENSE.txt" Pack="true" PackagePath="\" Visible="false" />
+		<None Include="$(MSBuildThisFileDirectory)LICENSE.txt" Pack="true" PackagePath="\" Visible="false" />
 		<None Include="$(_PackageReadmeSource)"
 			  Link="Properties\README.md"
 			  Condition=" Exists('$(_PackageReadmeSource)') "
@@ -61,8 +61,8 @@
 
 	<ItemGroup Condition=" $(TargetFramework) == 'netstandard2.0' ">
 		<PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
-		<PackageReference Include="Microsoft.Bcl.Memory" Version="10.0.9" />
-		<PackageReference Include="Microsoft.Bcl.Numerics" Version="10.0.9" />
+		<PackageReference Include="Microsoft.Bcl.Memory" Version="10.0.11" />
+		<PackageReference Include="Microsoft.Bcl.Numerics" Version="10.0.11" />
 	</ItemGroup>
 
 </Project>
