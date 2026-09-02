@@ -22,7 +22,6 @@
 		<PackageReference Remove="Microsoft.Bcl.HashCode" />
 		<PackageReference Remove="Microsoft.Bcl.Memory" />
 		<PackageReference Remove="Microsoft.Bcl.Numerics" />
-		<PackageReference Remove="System.Memory" />
 	</ItemGroup>
 
 	<ItemGroup>

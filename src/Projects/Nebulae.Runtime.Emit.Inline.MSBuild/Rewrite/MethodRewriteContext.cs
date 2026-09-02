@@ -34,12 +34,12 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Rewrite
 
         #region Public Properties
 
-        public Span<ParameterDefinition> Parameters
+        public ReadOnlySpan<ParameterDefinition> Parameters
         {
             get => _parameters.AsSpan();
         }
 
-        public Span<Placeholder> Placeholders
+        public ReadOnlySpan<Placeholder> Placeholders
         {
             get => _placeholders.AsSpan();
         }

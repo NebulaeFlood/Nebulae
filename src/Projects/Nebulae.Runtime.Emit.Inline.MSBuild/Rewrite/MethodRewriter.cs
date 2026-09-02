@@ -26,7 +26,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Rewrite
 
                 for (int i = 0; i < placeholders.Length; i++)
                 {
-                    ref Placeholder placeholder = ref placeholders[i];
+                    ref readonly Placeholder placeholder = ref placeholders[i];
                     Instruction instruction = placeholder.Instruction;
 
                     if (placeholder.IsPrimitive)

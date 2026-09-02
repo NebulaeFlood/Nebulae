@@ -33,8 +33,8 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
 
             for (int i = 0; i < last; i++)
             {
-                var lo = points[i];
-                var hi = points[i + 1];
+                SequencePoint lo = points[i];
+                SequencePoint hi = points[i + 1];
 
                 if (lo.Offset <= offset && offset < hi.Offset)
                 {
@@ -43,10 +43,15 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                 }
             }
 
-            if (points.Count > 0)
+            for (int i = last; i >= 0; i--)
             {
-                point = points[0];
-                return true;
+                SequencePoint candidate = points[i];
+
+                if (candidate.Offset <= offset)
+                {
+                    point = candidate;
+                    return true;
+                }
             }
 
             point = null!;
