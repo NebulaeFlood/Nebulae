@@ -8,7 +8,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\Nebulae.Reflection\Nebulae.Reflection.csproj" />
+		<ProjectReference Include="..\..\src\Nebulae.Lifetime.WeakEvents\Nebulae.Lifetime.WeakEvents.csproj" />
 	</ItemGroup>
 
 </Project>

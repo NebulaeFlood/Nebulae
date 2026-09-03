@@ -2,7 +2,7 @@
   "profiles": {
     "Default": {
       "commandName": "DebugRoslynComponent",
-      "targetProject": "..\\..\\Tests\\Tests.Demo\\Tests.Demo.csproj"
+      "targetProject": "..\\..\\tests\\Tests.Demo\\Tests.Demo.csproj"
     }
   }
 }

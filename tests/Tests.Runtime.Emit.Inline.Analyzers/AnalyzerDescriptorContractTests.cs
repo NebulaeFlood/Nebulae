@@ -1,6 +1,5 @@
 using Microsoft.CodeAnalysis;
 using Nebulae.Runtime.Emit.Inline.Analyzers;
-using System.Globalization;
 
 namespace Tests.Runtime.Emit.Inline.Analyzers;
 

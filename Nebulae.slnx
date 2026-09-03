@@ -10,6 +10,7 @@
   <Folder Name="/Nebulae.Presentation/">
     <Project Path="src/Nebulae.Presentation.Graphics.Vulkan/Nebulae.Presentation.Graphics.Vulkan.csproj" Id="d06696aa-3b2e-487c-beab-599e3b994370" />
     <Project Path="src/Nebulae.Presentation.Platform.Desktop/Nebulae.Presentation.Platform.Desktop.csproj" Id="ab884039-960d-49c9-a4d5-2a37fe9dae3e" />
+    <Project Path="src/Nebulae.Presentation.Scene/Nebulae.Presentation.Scene.csproj" />
     <Project Path="src/Nebulae.Presentation.UI/Nebulae.Presentation.UI.csproj" Id="f8df05de-bf07-4e7e-8a72-ecdcdba6dc9b" />
     <Project Path="src/Nebulae.Presentation/Nebulae.Presentation.csproj" Id="46dcca0d-5f55-4c8d-b98a-dddec4d9b016" />
   </Folder>
@@ -30,13 +31,13 @@
     <Project Path="src/System.Runtime.CompilerServices/System.Runtime.CompilerServices.shproj" Id="76a8a65b-f363-4f15-9e31-6c294eefd4d4" />
   </Folder>
   <Folder Name="/Tests/">
-    <Project Path="src/Tests/Tests.Collections/Tests.Collections.csproj" />
-    <Project Path="src/Tests/Tests.Demo/Tests.Demo.csproj" Id="14b9dfb2-4866-4bc3-b2dc-0316b4508b25" />
-    <Project Path="src/Tests/Tests.Lifetime.WeakEvents/Tests.Lifetime.WeakEvents.csproj" />
-    <Project Path="src/Tests/Tests.Reflection/Tests.Reflection.csproj" />
-    <Project Path="src/Tests/Tests.Runtime.Emit.Inline.Analyzers/Tests.Runtime.Emit.Inline.Analyzers.csproj" />
-    <Project Path="src/Tests/Tests.Runtime.Emit.Inline.Infrastructure/Tests.Runtime.Emit.Inline.Infrastructure.csproj" />
-    <Project Path="src/Tests/Tests.Runtime.Emit.Inline.Package/Tests.Runtime.Emit.Inline.Package.csproj" />
-    <Project Path="src/Tests/Tests.Runtime.Emit.Inline.Rewriter/Tests.Runtime.Emit.Inline.Rewriter.csproj" />
+    <Project Path="tests/Tests.Collections/Tests.Collections.csproj" />
+    <Project Path="tests/Tests.Demo/Tests.Demo.csproj" Id="14b9dfb2-4866-4bc3-b2dc-0316b4508b25" />
+    <Project Path="tests/Tests.Lifetime.WeakEvents/Tests.Lifetime.WeakEvents.csproj" />
+    <Project Path="tests/Tests.Reflection/Tests.Reflection.csproj" />
+    <Project Path="tests/Tests.Runtime.Emit.Inline.Analyzers/Tests.Runtime.Emit.Inline.Analyzers.csproj" />
+    <Project Path="tests/Tests.Runtime.Emit.Inline.Infrastructure/Tests.Runtime.Emit.Inline.Infrastructure.csproj" />
+    <Project Path="tests/Tests.Runtime.Emit.Inline.Package/Tests.Runtime.Emit.Inline.Package.csproj" />
+    <Project Path="tests/Tests.Runtime.Emit.Inline.Rewriter/Tests.Runtime.Emit.Inline.Rewriter.csproj" />
   </Folder>
 </Solution>

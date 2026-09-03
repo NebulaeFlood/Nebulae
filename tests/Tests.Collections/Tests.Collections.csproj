@@ -8,7 +8,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\Nebulae.Collections\Nebulae.Collections.csproj" />
+		<ProjectReference Include="..\..\src\Nebulae.Collections\Nebulae.Collections.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -1,14 +1,11 @@
-<Project Sdk="MSTest.Sdk/4.0.2">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
 		<CICD>inline-il-package</CICD>
-		<CICDOperatingSystems>linux;windows</CICDOperatingSystems>
-		<CICDConfigurations>Debug;Release</CICDConfigurations>
-		<CICDStage>source</CICDStage>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<EnableMicrosoftTestingExtensionsCodeCoverage>false</EnableMicrosoftTestingExtensionsCodeCoverage>
+		<IsPackable>false</IsPackable>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -19,8 +16,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Tests.Runtime.Emit.Inline.Infrastructure\Tests.Runtime.Emit.Inline.Infrastructure.csproj" />
-		<ProjectReference Include="..\..\Nebulae.Runtime.Emit.Inline\Nebulae.Runtime.Emit.Inline.csproj" />
+		<ProjectReference Include="..\..\src\Nebulae.Runtime.Emit.Inline.MSBuild\Nebulae.Runtime.Emit.Inline.MSBuild.csproj" />
+		<ProjectReference Include="..\..\src\Nebulae.Runtime.Emit.Inline\Nebulae.Runtime.Emit.Inline.csproj" />
 	</ItemGroup>
 
 </Project>

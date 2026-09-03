@@ -1,7 +1,6 @@
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Nebulae.Runtime.Emit.Inline;
-using Tests.Runtime.Emit.Inline.Infrastructure;
 
 namespace Tests.Runtime.Emit.Inline.Rewriter;
 
