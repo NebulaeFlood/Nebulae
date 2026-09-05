@@ -44,8 +44,8 @@ namespace Nebulae.Reflection.Specifiers
 
         #region Private Constants
 
-        private const int KindMask = 0B_0000_0010;
-        private const int StabilityMask = 0B_0000_0001;
+        private const int KindMask = 0b_0000_0010;
+        private const int StabilityMask = 0b_0000_0001;
 
         #endregion
 

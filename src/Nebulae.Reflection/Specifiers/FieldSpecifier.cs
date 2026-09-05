@@ -41,7 +41,7 @@ namespace Nebulae.Reflection.Specifiers
     /// </summary>
     public readonly struct FieldSpecifier : IEquatable<FieldSpecifier>
     {
-        private const byte ModeMask = 0B_0000_0011;
+        private const byte ModeMask = 0b_0000_0011;
 
 
         //------------------------------------------------------
@@ -272,7 +272,7 @@ namespace Nebulae.Reflection.Specifiers
         /// <returns>配置后的 <see cref="FieldSpecifier"/>。</returns>
         public FieldSpecifier Ref()
         {
-            // FieldSpecifierMode.Ref == 0B11;
+            // FieldSpecifierMode.Ref == 0b_11;
             return new FieldSpecifier(
                 MemberInfo,
                 Target,

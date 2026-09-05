@@ -40,11 +40,11 @@ namespace Nebulae.Reflection
         // +--------+---------+-------+-------+-------+-------+-------+-------+
         // | Policy | Binding |    Culture (3 bits)   |    Unused (3 bits)    |
         // +--------+---------+-------+-------+-------+-------+-------+-------+
-        private const byte BindingMask = 0B_0100_0000;
+        private const byte BindingMask = 0b_0100_0000;
         private const byte BindingOffset = 6;
-        private const byte CultureMask = 0B_0011_1000;
+        private const byte CultureMask = 0b_0011_1000;
         private const byte CultureOffset = 3;
-        private const byte PolicyMask = 0B_1000_0000;
+        private const byte PolicyMask = 0b_1000_0000;
         private const byte PolicyOffset = 7;
 
         #endregion

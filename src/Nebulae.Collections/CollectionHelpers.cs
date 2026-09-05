@@ -17,7 +17,7 @@ namespace Nebulae.Collections
         /// <summary>
         /// 黄金比例的近似值
         /// </summary>
-        public const float GoldenRatio = 1.6180340F;
+        public const float GoldenRatio = 1.6180340f;
 
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace Nebulae.Collections
             }
 
             value = value < 4
-                ? (value | 0B01) << 1
+                ? (value | 0b_01) << 1
                 : (int)MathF.Ceiling(value * GoldenRatio);
 
             return (uint)value > int.MaxValue ? int.MaxValue : value;
@@ -69,7 +69,7 @@ namespace Nebulae.Collections
             }
 
             value = value < 4
-                ? (value | 0B01) << 1
+                ? (value | 0b_01) << 1
                 : (int)MathF.Ceiling(value * GoldenRatio);
 
             return (uint)value > maxValue ? maxValue : value;
