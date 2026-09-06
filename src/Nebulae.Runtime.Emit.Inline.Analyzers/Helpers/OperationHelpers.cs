@@ -51,9 +51,21 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers.Helpers
                 && SymbolEqualityComparer.Default.Equals(fieldReference.Field.ContainingType, systemType);
         }
 
-        public static bool IsTypeOf(this IOperation operation)
+        public static bool IsTypeOfOrMakeByRefType(
+            this IOperation operation,
+            INamedTypeSymbol? systemType)
         {
-            return operation.GetInnermostConversion() is ITypeOfOperation;
+            operation = operation.GetInnermostConversion();
+
+            if (operation is ITypeOfOperation)
+            {
+                return true;
+            }
+
+            return operation is IInvocationOperation { Instance: { } instance, Arguments.Length: 0 } invocation
+                && invocation.TargetMethod.Name is nameof(Type.MakeByRefType)
+                && SymbolEqualityComparer.Default.Equals(invocation.TargetMethod.ContainingType, systemType)
+                && instance.GetInnermostConversion() is ITypeOfOperation;
         }
 
         public static bool IsInside(this IOperation operation, INamedTypeSymbol? symbol)

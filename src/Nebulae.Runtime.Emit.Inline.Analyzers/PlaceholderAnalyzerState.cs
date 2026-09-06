@@ -615,7 +615,7 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
                 }
                 else if (SymbolEqualityComparer.Default.Equals(parameterType, SystemType))
                 {
-                    if (!argument.Value.IsTypeOf())
+                    if (!argument.Value.IsTypeOfOrMakeByRefType(SystemType))
                     {
                         context.ReportDiagnostic(
                             PlaceholderAnalyzer.NonConstantOperandRule,
@@ -630,7 +630,7 @@ namespace Nebulae.Runtime.Emit.Inline.Analyzers
                         context,
                         argument.Value,
                         invocation.TargetMethod,
-                        value => value.IsTypeOf() || value.IsTypeEmptyTypes(SystemType));
+                        value => value.IsTypeOfOrMakeByRefType(SystemType) || value.IsTypeEmptyTypes(SystemType));
                 }
                 else if (parameterType?.SpecialType is SpecialType.System_Int32
                     && argument.Parameter?.Name == "genericParameterCount")

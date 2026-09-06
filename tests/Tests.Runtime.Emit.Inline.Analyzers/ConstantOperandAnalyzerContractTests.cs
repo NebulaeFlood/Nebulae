@@ -83,6 +83,48 @@ public sealed class ConstantOperandAnalyzerContractTests
     }
 
     [TestMethod]
+    public async Task TypeOperand_WhenTypeOfExpressionIsMadeByRef_HasNoDiagnostics()
+    {
+        const string source = """
+            using System;
+            using Nebulae.Runtime.Emit.Inline;
+
+            static class Scenario
+            {
+                static void Run()
+                {
+                    IL.Emit.Ldtoken(typeof(int).MakeByRefType());
+                }
+            }
+            """;
+
+        await AssertNoDiagnosticsAsync(source);
+    }
+
+    [TestMethod]
+    public async Task TypeArrayItem_WhenTypeOfExpressionIsMadeByRef_HasNoDiagnostics()
+    {
+        const string source = """
+            using System;
+            using Nebulae.Runtime.Emit.Inline;
+
+            static class Scenario
+            {
+                static void Run()
+                {
+                    IL.Emit.Call(
+                        IL.Ref(typeof(Scenario))
+                            .Method(nameof(Target), typeof(int).MakeByRefType()));
+                }
+
+                static void Target(ref int value) { }
+            }
+            """;
+
+        await AssertNoDiagnosticsAsync(source);
+    }
+
+    [TestMethod]
     public async Task GenericParameterCount_WhenNotCompileTimeConstant_ReportsNEBIL4001_OnCount()
     {
         const string source = """
