@@ -179,6 +179,11 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
 
         private static bool Matches(this ByReferenceType left, TypeReference right, Instruction placeholder)
         {
+            if (right is IModifierType modifier)
+            {
+                right = modifier.ElementType;
+            }
+
             return right is ByReferenceType byRef
                 && left.ElementType.Matches(byRef.ElementType, placeholder);
         }
@@ -423,20 +428,43 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
 
             var definition = reference.Resolve(placeholder);
             var methods = definition.Methods;
+            var matches = new ValueCollector<MethodDefinition>(4);
 
             for (int i = 0; i < methods.Count; i++)
             {
                 var method = methods[i];
 
                 if (method.Name.Equals(methodName, StringComparison.Ordinal)
-                    && method.GenericParameters.Count is 0
                     && parameterTypes.SequenceEqual(method.Parameters, placeholder))
                 {
-                    return method;
+                    matches.Collect(method);
                 }
             }
 
-            return null;
+            if (matches.IsEmpty)
+            {
+                return null;
+            }
+
+            if (matches.Count is 1)
+            {
+                return matches[0];
+            }
+
+            var candidates = new StringBuilder(128);
+            var span = matches.AsSpan();
+
+            for (int i = 0; i < span.Length; i++)
+            {
+                candidates.AppendLine()
+                    .Append('\t')
+                    .Append(span[i].FullName);
+            }
+
+            throw new AmbiguousMatchException(
+                $"Ambiguous match for method '{methodName}' " +
+                $"in type '{reference.FullName}'. Candidates:{candidates}")
+                .With(placeholder);
         }
 
         public static MethodDefinition? GetMethod(

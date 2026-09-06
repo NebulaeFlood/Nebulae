@@ -24,7 +24,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
 
         public static bool IsCallMakeByRefType(this Instruction instruction)
         {
-            return instruction.OpCode.Code is Code.Call
+            return instruction.OpCode.Code is Code.Call or Code.Callvirt
                 && instruction.Operand is MethodReference method
                 && method.Name.Equals(nameof(Type.MakeByRefType), StringComparison.Ordinal)
                 && method.DeclaringType.FullName.Equals("System.Type", StringComparison.Ordinal);
