@@ -3,7 +3,7 @@ using Mono.Cecil.Cil;
 using Mono.Cecil.Rocks;
 using Nebulae.Runtime.Emit.Inline.MSBuild.Rewrite;
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
@@ -739,7 +739,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                         ?? throw new MissingMethodException(
                             $"Cannot find method named '{methodName}' " +
                             $"with the specified parameter types " +
-                            $"'({string.Join(", ", (IEnumerable)parameterTypes)})' " +
+                            $"'({string.Join(", ", (IEnumerable<TypeReference>)parameterTypes)})' " +
                             $"in type '{declaringType.FullName}'.")
                             .With(placeholder);
 
@@ -773,7 +773,7 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                         ?? throw new MissingMethodException(
                             $"Cannot find method named '{methodName}' " +
                             $"with the specified parameter types " +
-                            $"'({string.Join(", ", (IEnumerable)parameterTypes)})' " +
+                            $"'({string.Join(", ", (IEnumerable<TypeReference>)parameterTypes)})' " +
                             $"and generic parameter count '{genericParameterCount}' " +
                             $"in type '{declaringType.FullName}'.")
                             .With(placeholder);

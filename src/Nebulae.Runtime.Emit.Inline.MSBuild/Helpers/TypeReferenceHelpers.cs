@@ -38,7 +38,12 @@ namespace Nebulae.Runtime.Emit.Inline.MSBuild.Helpers
                 return parameter.Matches(right, placeholder);
             }
 
-            if (right is GenericParameter)
+            if (right is GenericParameter || (right is GenericInstanceType
+                {
+                    ElementType.FullName: "System.Nullable`1",
+                    GenericArguments.Count: 1,
+                    GenericArguments: { } arguments
+                }) && arguments[0] is GenericParameter)
             {
                 var definition = left.Resolve(placeholder);
                 var attributes = definition?.CustomAttributes;
